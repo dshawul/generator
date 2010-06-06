@@ -7,8 +7,12 @@
 #    pragma warning (disable: 4127)
 #endif
 
+
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <cctype>
+#include <cstdarg>
 
 #include "my_types.h"
 
@@ -100,6 +104,10 @@ enum RESULTS{
 #define MIRRORD64(sq)    SQ64(file64(sq),rank64(sq))
 
 /*distance*/
+#undef max
+#undef min
+#define max(a, b)        (((a) > (b)) ? (a) : (b))
+#define min(a, b)        (((a) < (b)) ? (a) : (b))
 #define f_distance(x,y)  abs(file(x)-file(y))
 #define r_distance(x,y)  abs(rank(x)-rank(y))
 #define distance(x,y)    max(f_distance(x,y),r_distance(x,y))

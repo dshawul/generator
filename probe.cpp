@@ -63,6 +63,7 @@ int LoadEgbbLibrary(char* main_path,int egbb_cache_size) {
 		}
 	}
 	strcat(path,EGBB_NAME);
+
 	if((hmod = LoadLibrary(path)) != 0) {
 		load_egbb = (PLOAD_EGBB) GetProcAddress(hmod,"load_egbb_xmen");
      	probe_egbb = (PPROBE_EGBB) GetProcAddress(hmod,"probe_egbb_xmen");

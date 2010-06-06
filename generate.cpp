@@ -1,7 +1,6 @@
 #include "common.h"
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
+#include <cmath>
+#include <ctime>
 
 /*
  * Store/get mechanisms
@@ -784,7 +783,8 @@ void ENUMERATOR::compress() {
 	strcat(out_name,".cmp");
 	for(int i = 0;i < len;i++)
 		out_name[i] = tolower(out_name[i]);
-	
+	/*
+#ifdef _MSC_VER
 	strcpy(command,"");
 	sprintf(command,"compress -c -i %s -o %s",name,out_name);
 	system(command);
@@ -792,6 +792,15 @@ void ENUMERATOR::compress() {
 	strcpy(command,"");
 	sprintf(command,"del %s",name);
 	system(command);
+#else*/
+	strcpy(command,"");
+	sprintf(command,"./compress -c -i %s -o %s",name,out_name);
+	system(command);
+
+	strcpy(command,"");
+	sprintf(command,"rm -r %s",name);
+	system(command);
+//#endif
 }
 /*
  * print to logfile / stdout
@@ -829,13 +838,13 @@ void ENUMERATOR::print_header() {
 /*
 Main
 */
-void main() {
+int main() {
 	SEARCHER searcher;
 	ENUMERATOR enumerator,*penum = &enumerator; 
 	int piece[MAX_PIECES];
 		
 	int egbb_cache_size = (32 * 1024 * 1024);
-	SEARCHER::egbb_is_loaded = LoadEgbbLibrary("",egbb_cache_size);
+	SEARCHER::egbb_is_loaded = LoadEgbbLibrary("./",egbb_cache_size);
 
 	log_file = fopen("log.txt" ,"w");
 	init_sqatt();
@@ -930,5 +939,7 @@ void main() {
 #undef ADD
 	/*close log file*/
 	fclose(log_file);
+
+	return 0;
 }
 
