@@ -783,7 +783,6 @@ void ENUMERATOR::compress() {
 	strcat(out_name,".cmp");
 	for(int i = 0;i < len;i++)
 		out_name[i] = tolower(out_name[i]);
-	/*
 #ifdef _MSC_VER
 	strcpy(command,"");
 	sprintf(command,"compress -c -i %s -o %s",name,out_name);
@@ -792,7 +791,7 @@ void ENUMERATOR::compress() {
 	strcpy(command,"");
 	sprintf(command,"del %s",name);
 	system(command);
-#else*/
+#else
 	strcpy(command,"");
 	sprintf(command,"./compress -c -i %s -o %s",name,out_name);
 	system(command);
@@ -800,7 +799,7 @@ void ENUMERATOR::compress() {
 	strcpy(command,"");
 	sprintf(command,"rm -r %s",name);
 	system(command);
-//#endif
+#endif
 }
 /*
  * print to logfile / stdout
