@@ -843,7 +843,11 @@ int main() {
 	int piece[MAX_PIECES];
 		
 	int egbb_cache_size = (32 * 1024 * 1024);
+#ifdef _MSC_VER
+	SEARCHER::egbb_is_loaded = LoadEgbbLibrary("",egbb_cache_size);
+#else
 	SEARCHER::egbb_is_loaded = LoadEgbbLibrary("./",egbb_cache_size);
+#endif
 
 	log_file = fopen("log.txt" ,"w");
 	init_sqatt();
