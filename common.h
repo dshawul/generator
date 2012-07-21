@@ -269,6 +269,8 @@ extern BMP16 KK_WP_rotation[4096];
 extern BMP16 KK_square[462];
 extern BMP16 KK_WP_square[1806];
 
+const char piece_name[] = "_KQRBNPkqrbnp_";
+
 void init_sqatt();
 void init_indices();
 
@@ -309,7 +311,7 @@ struct ENUMERATOR {
 	int player;
 	int king_loc;
 	int pawn_loc;
-	char name[16];
+	char name[64];
 	SEARCHER searcher;
 
 	ENUMERATOR() {
@@ -317,6 +319,20 @@ struct ENUMERATOR {
 		n_pawn = 0;
 		size = 1;
 		player = white;
+	}
+	void copy(const ENUMERATOR& src) {
+		n_piece = src.n_piece;
+		n_pawn = src.n_pawn;
+		player = src.player;
+		king_loc = src.king_loc;
+		pawn_loc = src.pawn_loc;
+		size = src.size;
+		memcpy(piece,src.piece,sizeof(piece));
+		memcpy(square,src.square,sizeof(square));
+		memcpy(res1,src.res1,sizeof(res1));
+		memcpy(res2,src.res2,sizeof(res2));
+		memcpy(index,src.index,sizeof(index));
+		memcpy(divisor,src.divisor,sizeof(divisor));
 	}
 	void add(int pc) {
         piece[n_piece++] = pc;
@@ -348,8 +364,8 @@ struct ENUMERATOR {
     void get_retro_score(UBMP8*,UBMP8*,UBMP8*,UBMP8*,int,bool is_6man,MYINT xx);
 	int get_forward_score(UBMP8&,int,int,bool is_6man);
 	int verify(UBMP8*,UBMP8*);
-	void forward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,bool is_6man);
-	void backward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,bool is_6man);
+	void forward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
+	void backward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
 	void compress();
 	void print_header();
 	bool is_illegal(MYINT,int,bool&);

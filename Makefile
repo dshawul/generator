@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -O3
 DEFINES =
-LDFLAGS = 
+LDFLAGS = -fopenmp
 
 EXE = generate
 RM = rm -rf

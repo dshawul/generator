@@ -1,4 +1,3 @@
-
 #include "common.h"
 
 /*
@@ -281,8 +280,6 @@ void get_squares_like(int* sq,const int N,const int index) {
 /*
  * globals
  */
-static const char piece_name[] = "_KQRBNPkqrbnpZ";
-
 static const int piece_v[15] = {
 	0,0,975,500,326,325,100,0,975,500,326,325,100,0
 };
@@ -327,7 +324,7 @@ void ENUMERATOR::sort(int type) {
     /*who is stronger?*/
 	if(vcount[white] > vcount[black]) stronger = white;
 	else if(vcount[black] > vcount[white]) stronger = black;
-	else stronger = player;
+	else stronger = white;
 
 	/*ordered list*/
 	for(i = 0;i < n_piece;i++) {
@@ -357,12 +354,19 @@ void ENUMERATOR::init() {
 		i,j,pic;
 
 	/*name*/
+#ifdef _MSC_VER
+	strcpy(name,"egbb/");
+#else
+	strcpy(name,"./egbb/");
+#endif
+	char nm[16];
 	for(i = 0;i < n_piece; i++) {
-		name[i] = piece_name[piece[i]];
+		nm[i] = piece_name[piece[i]];
 	}
-	name[i++] = '.';
-	name[i++] = (player == white) ? 'w':'b';
-	name[i++] = 0;
+	nm[i++] = '.';
+	nm[i++] = (player == white) ? 'w':'b';
+	nm[i++] = 0;
+	strcat(name,nm);
 
 	/*determine streaming order*/
 	int vcount[2] = {0,0}, stronger;

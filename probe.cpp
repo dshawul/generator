@@ -97,18 +97,18 @@ int SEARCHER::probe_bitbases(int& score) {
 	};
 	ADD_PIECE(plist[wking],_WKING);
 	ADD_PIECE(plist[bking],_BKING);
-	ADD_PIECE(plist[wpawn],_WPAWN);
-	ADD_PIECE(plist[bpawn],_BPAWN);
 	ADD_PIECE(plist[wqueen],_WQUEEN);
 	ADD_PIECE(plist[bqueen],_BQUEEN);
 	ADD_PIECE(plist[wrook],_WROOK);
-	ADD_PIECE(plist[wbishop],_WBISHOP);
 	ADD_PIECE(plist[brook],_BROOK);
+	ADD_PIECE(plist[wbishop],_WBISHOP);
 	ADD_PIECE(plist[bbishop],_BBISHOP);
 	ADD_PIECE(plist[wknight],_WKNIGHT);
 	ADD_PIECE(plist[bknight],_BKNIGHT);
+	ADD_PIECE(plist[wpawn],_WPAWN);
+	ADD_PIECE(plist[bpawn],_BPAWN);
 	piece[count] = _EMPTY;
-	square[count] = -1;
+	square[count] = 0;
 
 	score = probe_egbb(player,piece,square);
 	

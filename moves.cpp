@@ -1058,7 +1058,6 @@ int SEARCHER::attacks(int col,int sq) {
 /*
 print board
 */
-static const char piece_name[] = "_KQRBNPkqrbnpZ";
 static const char rank_name[] = "12345678";
 static const char file_name[] = "abcdefgh";
 
