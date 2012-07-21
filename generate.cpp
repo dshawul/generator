@@ -451,7 +451,7 @@ void ENUMERATOR::forward_pass(
 		
 
 	end = clock();
-    print("\riteration %3d [%.2f sec]\t\t\n",0,(end - start) / 1000.0f);
+    print("\riteration %3d [%.2f sec]\t\t\n",0,float(end - start) / CLOCKS_PER_SEC);
 }
 /*
  * Backward pass
@@ -567,7 +567,7 @@ void ENUMERATOR::backward_pass(
 
 		iteration++;
 		end = clock();
-		print("\riteration %3d [%.2f sec]\t\t\n",iteration,(end - start) / 1000.0f);
+		print("\riteration %3d [%.2f sec]\t\t\n",iteration,float(end - start) / CLOCKS_PER_SEC);
 
 		if(prev_more_to_do == more_to_do) break;
 	} while(more_to_do);
@@ -751,7 +751,7 @@ void generate(ENUMERATOR* penum) {
 
 	/*stat*/
 	end = clock();
-	print("Generated in %.2f sec\n",(end - start) / 1000.0f);
+	print("Generated in %.2f sec\n",float(end - start) / CLOCKS_PER_SEC);
 	start = clock();
 
 	/*close files*/
@@ -767,7 +767,7 @@ void generate(ENUMERATOR* penum) {
 	penum->compress();
 
 	end = clock();
-	print("Compressed in %.2f sec\n",(end - start) / 1000.0f);
+	print("Compressed in %.2f sec\n",float(end - start) / CLOCKS_PER_SEC);
 
 	/*open egbb*/
 	penum->piece[penum->n_piece] = 0;
