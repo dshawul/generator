@@ -290,17 +290,10 @@ static const int piece_v[15] = {
  *  - Or for slicing egbbs
  */
 static const int piece_order[2][12] = {
-
-#ifdef PAWN_SLICE
-	/*Pawn slicing*/
+	/* The first four are for reserved for pawns & kings only
+	 * The rest of the pieces take the remaining 8*/
 	{bpawn,wpawn,bking,wking,bqueen,wqueen,brook,wrook,bbishop,wbishop,bknight,wknight},   
 	{wpawn,bpawn,wking,bking,wqueen,bqueen,wrook,brook,wbishop,bbishop,wknight,bknight}
-#else
-	/*KK slicing*/
-	{bking,wking,bpawn,wpawn,bqueen,wqueen,brook,wrook,bbishop,wbishop,bknight,wknight},
-	{wking,bking,wpawn,bpawn,wqueen,bqueen,wrook,brook,wbishop,bbishop,wknight,bknight}
-#endif
-
 };
 /*
  * Original piece order
@@ -360,9 +353,8 @@ void ENUMERATOR::init() {
 	strcpy(name,"./egbb/");
 #endif
 	char nm[16];
-	for(i = 0;i < n_piece; i++) {
+	for(i = 0;i < n_piece; i++)
 		nm[i] = piece_name[piece[i]];
-	}
 	nm[i++] = '.';
 	nm[i++] = (player == white) ? 'w':'b';
 	nm[i++] = 0;
@@ -402,21 +394,19 @@ void ENUMERATOR::init() {
 		}
 	}
 	/*kings*/
-	if(n_pawns) {
-		for(i = 0;i < 4;i++) {
-			if(PIECE(piece[i]) == king) {
-				king_loc = i;
+	for(i = 0;i < 4;i++) {
+		if(PIECE(piece[i]) == king) {
+			king_loc = i;
+			if(n_pawns)
 				index[i + 1] = 1806;
-				break;
-			}
+			else
+				index[i + 1] = 462;
+			break;
 		}
-	} else {
-		king_loc = 0;
-		index[1] = 462;
 	}
 
 	/*same pieces*/
-	for(i = 0;i < n_piece; i++) {
+	for(i = 1;i < n_piece; i++) {
 		for(j = i + 1;j < n_piece;j++) {
 			if(piece[i] != piece[j]) break;
 		}
@@ -463,8 +453,10 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 	}
 
 	/*rotate*/
-	if(n_pawn) rot = KK_WP_rotation[square[king_loc] * 64 + square[king_loc + 1]];
-	else rot = KK_rotation[square[king_loc] * 64 + square[king_loc + 1]];
+	if(n_pawn) 
+		rot = KK_WP_rotation[square[king_loc] * 64 + square[king_loc + 1]];
+	else 
+		rot = KK_rotation[square[king_loc] * 64 + square[king_loc + 1]];
 	if(rot || special) {
 		for(i = 0;i < n_piece;i++) {
 			sq = square[i];
@@ -485,9 +477,6 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 		}
 	}
 
-    /*init index to zero*/
-    pindex = 0;
-
 	/*legal placement based on other piece location*/
 	for(i = n_piece - 1;i >= 0; --i) {
 
@@ -500,7 +489,7 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 		/*start and finish*/
 		int k,l,temp,start,finish;
 		ispawn = (PIECE(piece[i]) == pawn);
-		start = (ispawn ? 2 : 0);
+		start = (ispawn ? pawn_loc : king_loc);
 		finish = i;
 		if(i > 2 && index[i - 1] == 1) {
 			finish = i - 1;
@@ -533,11 +522,15 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 	}
 
 	/*primary locations*/
+	pindex = 0;
 	for(i = n_piece - 1;i >= 0; --i) {
+
 		/*king squares*/
 		if(i == king_loc + 1) {
-			if(n_pawn) temp = KK_WP_index[square[i - 1] * 64 + square[i]];
-			else temp = KK_index[square[i - 1] * 64 + square[i]];
+			if(n_pawn) 
+				temp = KK_WP_index[square[i - 1] * 64 + square[i]];
+			else 
+				temp = KK_index[square[i - 1] * 64 + square[i]];
 			pindex += temp * divisor[i];
 			--i;
 			continue;
@@ -559,8 +552,10 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 			}
             temp = get_index_like(&square[i],N + 1);
 		} else {
-			if(ispawn) temp = SQ6448(square[i]);
-			else temp = square[i];	
+			if(ispawn) 
+				temp = SQ6448(square[i]);
+			else 
+				temp = square[i];	
 		}
 		pindex += temp * divisor[i + N];
 	}
@@ -570,15 +565,21 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 		square[i] = res2[i];
 	}
 
+	/*limit range*/
+	pindex %= slice_size;
+
 	return true;
 }
 /*
  * Set up position for a given index
  */
 bool ENUMERATOR::get_pos(MYINT pindex) {
-	MYINT temp;
-	
+
+	/*adjust range*/
+	pindex += slice_i * slice_size;
+
 	/*determine primary locations of kings/pieces/pawns*/
+	MYINT temp;
     int i,k,squares,N,ispawn;
 
 	for(i = 0;i < n_piece; i++) {
@@ -609,8 +610,10 @@ bool ENUMERATOR::get_pos(MYINT pindex) {
 					square[i - k] = SQ4864(square[i - k]);
 			}
 		} else {
-			if(ispawn) square[i] = (int)SQ4864(temp);
-			else square[i] = (int)temp;
+			if(ispawn) 
+				square[i] = (int)SQ4864(temp);
+			else 
+				square[i] = (int)temp;
 		}
 		pindex -= (temp * divisor[i]);
 	}

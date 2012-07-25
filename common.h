@@ -44,7 +44,7 @@ enum SQUARES {
 		A8 = 112,B8,C8,D8,E8,F8,G8,H8
 };
 enum RESULTS{
-	DONT_KNOW = -3,ILLEGAL = -2,LOSS = -1,DRAW = 0,WIN = 1,PREDICTED = 3
+	ILLEGAL = -2,LOSS = -1,DRAW = 0,WIN = 1,PREDICTED = 3
 };
 
 #define RR    0x01
@@ -86,6 +86,27 @@ enum RESULTS{
 #define MAX_PLY             70
 
 /*square*/
+const int _mirror4864[] = {
+	48,40,32,24,16, 8,
+	55,47,39,31,23,15,
+	49,41,33,25,17, 9,
+	54,46,38,30,22,14,
+	50,42,34,26,18,10,
+	53,45,37,29,21,13,
+	51,43,35,27,19,11,
+	52,44,36,28,20,12
+};
+const int _mirror6448[] = {
+	0, 0, 0, 0, 0, 0, 0, 0,
+	5,17,29,41,47,35,23,11,
+	4,16,28,40,46,34,22,10,
+	3,15,27,39,45,33,21, 9,
+	2,14,26,38,44,32,20, 8,
+	1,13,25,37,43,31,19, 7,
+	0,12,24,36,42,30,18, 6,
+	0, 0, 0, 0, 0, 0, 0, 0
+};
+
 #define file(x)          ((x) &  7)
 #define rank(x)          ((x) >> 4)
 #define file64(x)        ((x) &  7)
@@ -93,9 +114,9 @@ enum RESULTS{
 #define SQ(x,y)          (((x) << 4) | (y))
 #define SQ64(x,y)        (((x) << 3) | (y))
 #define SQ8864(x)        SQ64(rank(x),file(x))
-#define SQ6488(x)        SQ(rank64(x),file(x))
-#define SQ6448(x)        ((x) - 8)
-#define SQ4864(x)        ((x) + 8)   
+#define SQ6488(x)        SQ(rank64(x),file64(x))
+#define SQ6448(x)        _mirror6448[x]
+#define SQ4864(x)        _mirror4864[x]
 #define MIRRORF(sq)      ((sq) ^ 0x07)
 #define MIRRORR(sq)      ((sq) ^ 0x70)
 #define MIRRORD(sq)      SQ(file(sq),rank(sq))
@@ -293,7 +314,6 @@ Some defs
 #define rotF  1
 #define rotR  2
 #define rotD  4
-//#define PAWN_SLICE
 
 /*
 Enumerator
@@ -311,6 +331,8 @@ struct ENUMERATOR {
 	int player;
 	int king_loc;
 	int pawn_loc;
+	int slice_i;
+	MYINT slice_size;
 	char name[64];
 	SEARCHER searcher;
 
@@ -319,6 +341,8 @@ struct ENUMERATOR {
 		n_pawn = 0;
 		size = 1;
 		player = white;
+		slice_i = 0;
+		slice_size = 1;
 	}
 	void copy(const ENUMERATOR& src) {
 		n_piece = src.n_piece;
@@ -327,6 +351,8 @@ struct ENUMERATOR {
 		king_loc = src.king_loc;
 		pawn_loc = src.pawn_loc;
 		size = src.size;
+		slice_i = src.slice_i;
+		slice_size = src.slice_size;
 		memcpy(piece,src.piece,sizeof(piece));
 		memcpy(square,src.square,sizeof(square));
 		memcpy(res1,src.res1,sizeof(res1));
@@ -361,10 +387,10 @@ struct ENUMERATOR {
 	void sort(int);
 	bool get_pos(MYINT);
 	bool get_index(MYINT&,bool = false);
-    void get_retro_score(UBMP8*,UBMP8*,UBMP8*,UBMP8*,int,bool is_6man,MYINT xx);
-	int get_forward_score(UBMP8&,int,int,bool is_6man);
+    void get_retro_score(UBMP8*,UBMP8*,UBMP8*,UBMP8*,int,bool is_6man);
+	int get_init_score(UBMP8&,int,int,bool is_6man);
 	int verify(UBMP8*,UBMP8*);
-	void forward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
+	void initial_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
 	void backward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
 	void compress();
 	void print_header();

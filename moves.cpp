@@ -762,7 +762,6 @@ void SEARCHER::gen_retro() {
 		NK_NONCAP(RR);
 		NK_NONCAP(LL);
 
-#ifndef PAWN_SLICE
 		/*pawn*/
 		current = plist[wpawn];
 		while(current) {
@@ -779,8 +778,6 @@ void SEARCHER::gen_retro() {
 			}	
 			current = current->next;
 		}
-#endif
-
 	} else {
 		/*knight*/
 		current = plist[bknight];
@@ -847,7 +844,6 @@ void SEARCHER::gen_retro() {
 		NK_NONCAP(RR);
 		NK_NONCAP(LL);
 
-#ifndef PAWN_SLICE
 		/*pawn*/
 		current = plist[bpawn];
 		while(current) {
@@ -864,7 +860,6 @@ void SEARCHER::gen_retro() {
 			}	
 			current = current->next;
 		}
-#endif
 	}
 	/*count*/
 	pstack->count += (pmove - spmove);
@@ -1078,33 +1073,33 @@ void print_move(const int& move) {
 	char f[6],t[6];
 	sq_str(m_from(move),f);
 	sq_str(m_to(move),t);
-	printf("%s %s %c %c %c ep = %d cst=%d",f,t,piece_name[m_piece(move)],
+	print("%s %s %c %c %c ep = %d cst=%d",f,t,piece_name[m_piece(move)],
 		piece_name[m_capture(move)],piece_name[m_promote(move)],is_ep(move),is_castle(move));
 }
 void SEARCHER::print_board() {
 	int i , j;
-	printf("\n");
+	print("\n");
 	for(i = 7; i >= 0; i--) {
-        printf("\t");
+        print("\t");
 		for(j = 0;j < 8; j++) {
-			printf("%c",piece_name[board[SQ(i,j)]]);
+			print("%c",piece_name[board[SQ(i,j)]]);
 		}
-		printf("\n");
+		print("\n");
 	}
 #ifdef	_DEBUG
-	printf("play = %d opp = %d ep = %d cas = %d fif = %d\n",player,opponent,epsquare,castle,fifty);
+	print("play = %d opp = %d ep = %d cas = %d fif = %d\n",player,opponent,epsquare,castle,fifty);
     PLIST current;
 	char  str[4];
 	for(i = wking;i <= bpawn;i++) {
 		current = plist[i];
 		print_pc(i);
-		printf(":");
+		print(":");
 		while(current) {
 			sq_str(current->sq,str);
-			printf("%5s",str);
+			print("%5s",str);
 			current = current->next;
 		}
-		printf("\n");
+		print("\n");
 	}
 #endif
 }
