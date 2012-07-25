@@ -575,8 +575,8 @@ void ENUMERATOR::backward_pass(
 void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 	register MYINT i;
 	UBMP8* ptab1,*ptab2,*c1,*c2;
-	MYINT sz1,sz2,esize = penum->size,n_slices;
-	int v;
+	MYINT sz1,sz2,esize = penum->size;
+	int n_slices,v;
 
 	/*generate*/
 	UBMP32 counts[2][4];
@@ -619,7 +619,7 @@ void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 	for(int s = 0;s < n_slices;s++)
 	{
 		penum->slice_i = s;
-		print("Slice %d of size "FMT64"\n",s,esize);
+		print("Slice %d/%d of size "FMT64"\n",s+1,n_slices,esize);
 
 		/*Initialize*/
 		for(i = 0;i < sz1;i++) {
