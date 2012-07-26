@@ -208,9 +208,9 @@ BACK:
 		wk = searcher.plist[wking]->sq;
 		bk = searcher.plist[bking]->sq;
 		if(!n_pawn
-			&& ( (rank(wk) == file(wk) && abs(sqatt[wk - bk].step) == RU)
+			&& ( (rank(wk) == file(wk) && abs(sqatt_step(wk - bk)) == RU)
 			||
-			(rank(wk) + file(wk) == 7 && abs(sqatt[wk - bk].step) == LU)
+			(rank(wk) + file(wk) == 7 && abs(sqatt_step(wk - bk)) == LU)
 			)
 			)   
 			special = true;
@@ -263,9 +263,9 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 			wk = searcher.plist[wking]->sq;
 			bk = searcher.plist[bking]->sq;
 			if(!n_pawn
-				&& ( (rank(wk) == file(wk) && abs(sqatt[wk - bk].step) == RU)
+				&& ( (rank(wk) == file(wk) && abs(sqatt_step(wk - bk)) == RU)
 				||
-				(rank(wk) + file(wk) == 7 && abs(sqatt[wk - bk].step) == LU)
+				(rank(wk) + file(wk) == 7 && abs(sqatt_step(wk - bk)) == LU)
 				)
 				)   
 				counter += 2;
@@ -453,12 +453,10 @@ void ENUMERATOR::backward_pass(
 	MYINT i;
 	clock_t start,end;
 	int j,v1,v2,r1,r2,first,pass;
-	int more_to_do = 0;
-	int prev_more_to_do;
+	int more_to_do;
 	int iteration = 0;
 	do
 	{
-		prev_more_to_do = more_to_do;
 		more_to_do = 0;
 		first = true;
 		start = clock();
@@ -566,8 +564,6 @@ void ENUMERATOR::backward_pass(
 		end = clock();
 		print("\r<-iteration %3d [%.2f sec]\t\t\n",
 			iteration,float(end - start) / CLOCKS_PER_SEC);
-		//if(prev_more_to_do == more_to_do) 
-		//	break;
 	} while (more_to_do);
 }
 /*
@@ -857,7 +853,6 @@ int main(int argc,char* argv[]) {
 #endif
 
 	log_file = fopen("log.txt" ,"w");
-	init_sqatt();
 	init_indices();
 
 	int npieces = 0,npawns = 0,bindex = -1,nenums = 0;
@@ -905,6 +900,7 @@ int main(int argc,char* argv[]) {
 	int& piece2 = piece[3];
 	int& piece3 = piece[4];
 	int& piece4 = piece[5];
+	int& piece5 = piece[6];
 
 	/*3 pieces*/
 
@@ -981,6 +977,42 @@ int main(int argc,char* argv[]) {
 		}
 	}
 
+	/*7 pieces*/
+	piece[7] = 0;
+
+	for(piece1 = wqueen; piece1 <= wpawn; piece1++) {
+		for(piece2 = piece1; piece2 <= wpawn; piece2++) {
+			for(piece3 = piece2; piece3 <= wpawn; piece3++) {
+				for(piece4 = bqueen; piece4 <= bpawn; piece4++) {
+					for(piece5 = piece4; piece5 <= bpawn; piece5++) {
+						ADD();
+					}
+				}
+			}
+		}
+	}
+	for(piece1 = wqueen; piece1 <= wpawn; piece1++) {
+		for(piece2 = piece1; piece2 <= wpawn; piece2++) {
+			for(piece3 = piece2; piece3 <= wpawn; piece3++) {
+				for(piece4 = piece3; piece4 <= wpawn; piece4++) {
+					for(piece5 = bqueen; piece5 <= bpawn; piece5++) {
+						ADD();
+					}
+				}
+			}
+		}
+	}
+	for(piece1 = wqueen; piece1 <= wpawn; piece1++) {
+		for(piece2 = piece1; piece2 <= wpawn; piece2++) {
+			for(piece3 = piece2; piece3 <= wpawn; piece3++) {
+				for(piece4 = piece3; piece4 <= wpawn; piece4++) {
+					for(piece5 = piece4; piece5 <= wpawn; piece5++) {
+						ADD();
+					}
+				}
+			}
+		}
+	}
 #undef ADD
 	/*close log file*/
 	fclose(log_file);

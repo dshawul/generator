@@ -7,7 +7,6 @@
 #    pragma warning (disable: 4127)
 #endif
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -44,7 +43,7 @@ enum SQUARES {
 		A8 = 112,B8,C8,D8,E8,F8,G8,H8
 };
 enum RESULTS{
-	ILLEGAL = -2,LOSS = -1,DRAW = 0,WIN = 1,PREDICTED = 3
+	ILLEGAL = -2,LOSS = -1,DRAW = 0,WIN = 1
 };
 
 #define RR    0x01
@@ -116,12 +115,8 @@ enum RESULTS{
 
 #define COLOR(x)         (col_tab[x])
 #define PIECE(x)         (pic_tab[x]) 
-#define DECOMB(c,x)      ((x) - ((c) ? 6 : 0)) 
-#define COMBINE(c,x)     ((x) + ((c) ? 6 : 0)) 
-#define is_white(x)      ((x) <= 6)
-#define is_black(x)      ((x) > 6)
+#define COMBINE(c,x)     ((x) + (c) * 6)
 #define invert(x)        (!(x))
-#define invert_color(x)  (((x) > 6) ? ((x) - 6) : ((x) + 6))
 
 /*move*/
 #define FROM_FLAG        0x000000ff
@@ -155,11 +150,6 @@ enum RESULTS{
 /*
 Type definitions
 */
-typedef struct SQATTACK {
-	int   step;
-	int   pieces;
-}*PSQATTACK;
-
 typedef struct LIST{
 	int   sq;
 	LIST* prev;
@@ -193,8 +183,8 @@ typedef struct SEARCHER{
 	STACK stack[MAX_PLY];
 
 	SEARCHER();
-	int   blocked(int,int);
-	int   attacks(int,int);
+	int   blocked(int,int) const;
+	int   attacks(int,int) const;
 	void  pcAdd(int,int);
 	void  pcRemove(int,int);
 	void  pcSwap(int,int);
@@ -260,8 +250,6 @@ globals
 extern const int col_tab[15];
 extern const int pic_tab[15];
 extern const int pawn_dir[2];
-extern SQATTACK  temp_sqatt[0x101];
-extern PSQATTACK const sqatt;
 extern BMP16 KK_index[4096];
 extern BMP16 KK_WP_index[4096];
 extern BMP16 KK_rotation[4096];
@@ -271,9 +259,7 @@ extern BMP16 KK_WP_square[1806];
 
 const char piece_name[] = "_KQRBNPkqrbnp_";
 
-void init_sqatt();
 void init_indices();
-
 void print(const char* format,...);
 void print_pc(const int& pc);
 void print_sq(const int& sq);
@@ -285,6 +271,11 @@ void get_squares_like(int* sq,const int N,const int index);
 int LoadEgbbLibrary(char* path,int);
 typedef int (CDECL *POPEN_EGBB) (int*);
 extern POPEN_EGBB open_egbb;
+
+extern const UBMP8* const _sqatt_pieces;
+extern const BMP8* const _sqatt_step;
+#define sqatt_pieces(sq)        _sqatt_pieces[sq]
+#define sqatt_step(sq)          _sqatt_step[sq]
 
 /*
 Some defs
@@ -366,9 +357,9 @@ struct ENUMERATOR {
 	void sort(int);
 	bool get_pos(MYINT);
 	bool get_index(MYINT&,bool = false);
+	int  verify(UBMP8*,UBMP8*);
+	int  get_init_score(UBMP8&,int,int,bool is_6man);
     void get_retro_score(UBMP8*,UBMP8*,UBMP8*,UBMP8*,int,bool is_6man);
-	int get_init_score(UBMP8&,int,int,bool is_6man);
-	int verify(UBMP8*,UBMP8*);
 	void initial_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
 	void backward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
 	void compress();
