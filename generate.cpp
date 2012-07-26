@@ -461,7 +461,7 @@ void ENUMERATOR::backward_pass(
 		first = true;
 		start = clock();
 
-		for(pass = 0;pass < 1;pass++) {
+		for(pass = 0;pass < 2;pass++) {
 			for(i = s;i < e;i++) {
 				
 				/*verbose*/
