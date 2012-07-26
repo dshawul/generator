@@ -241,7 +241,8 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 		move = searcher.pstack->move_st[i];
 
 		searcher.do_move(move);
-		if(searcher.attacks(searcher.player,searcher.plist[COMBINE(searcher.opponent,king)]->sq)) {
+		if(searcher.attacks(searcher.player,
+			searcher.plist[COMBINE(searcher.opponent,king)]->sq)) {
 			searcher.undo_move(move);
 			continue;
 		}
@@ -565,8 +566,8 @@ void ENUMERATOR::backward_pass(
 		end = clock();
 		print("\r<-iteration %3d [%.2f sec]\t\t\n",
 			iteration,float(end - start) / CLOCKS_PER_SEC);
-		if(prev_more_to_do == more_to_do) 
-			break;
+		//if(prev_more_to_do == more_to_do) 
+		//	break;
 	} while (more_to_do);
 }
 /*
