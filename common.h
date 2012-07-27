@@ -160,9 +160,7 @@ typedef struct STACK{
 	int move_st[MAX_MOVES];
 	int count;
 	int legal_moves;
-	int fifty;
 	int epsquare;
-	int castle;
 }*PSTACK;
 
 /*
@@ -171,9 +169,7 @@ searcher
 typedef struct SEARCHER{
 	int player;
 	int opponent;
-	int castle;
 	int epsquare;
-	int fifty;
 	int temp_board[224];
 	int* const board;
 	PLIST list[128];

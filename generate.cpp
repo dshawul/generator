@@ -6,53 +6,19 @@
 /*
 * Store/get mechanisms
 */
-static const int VALUE[4] = {
-	DRAW, WIN, LOSS, ILLEGAL
-};
-
-/*store*/
 void SET(MYINT i,int value,UBMP8* ptab) {
-	UBMP8* v;
-	MYINT q,r;
-	int myval;
-
-	q = (i / 4);
-	r = (i % 4);
-	v = &ptab[q];
-	myval = int(*v & ~(3 << (r << 1)));
-
-	switch(value) {
-	   case WIN:
-		   myval |= (1 << (r << 1));
-		   break;
-	   case LOSS:
-		   myval |= (2 << (r << 1));
-		   break;
-	   case DRAW:
-		   break;
-	   case ILLEGAL:
-		   myval |= (3 << (r << 1));
-		   break;
-	   default:
-		   break;
-	}
-
+	MYINT q = (i / 4);
+	MYINT r = (i % 4);
+	UBMP8* v = &ptab[q];
+	int myval = (int)(*v & ~(3 << (r << 1)));
+	myval |= ((1 - value) << (r << 1));
 	*v = (UBMP8)myval;
 }
-/*get*/
 void GET(MYINT i,int& value, UBMP8* ptab) {
-	UBMP8* v;
-	MYINT q,r;
-	int myval;
-
-	q = (i / 4);
-	r = (i % 4);
-	v = &ptab[q];
-	myval = *v;
-
-	value = VALUE[(myval >> (r << 1)) & 3];
+	MYINT q = (i / 4);
+	MYINT r = (i % 4);
+	value = 1 - ((ptab[q] >> (r << 1)) & 3);
 }
-
 /*
 * Verify if the value for a positon has become known
 * by making all possible moves.
@@ -109,7 +75,6 @@ int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2) {
 /*
 * Retrograde analysis of parents
 */
-
 void ENUMERATOR::get_retro_score(UBMP8* ptab1,UBMP8* ptab2,
 								 UBMP8* c1,UBMP8* c2,
 								 int score,bool is_6man) {
@@ -127,9 +92,10 @@ void ENUMERATOR::get_retro_score(UBMP8* ptab1,UBMP8* ptab2,
 
 		searcher.do_move(move);
 		if(searcher.attacks(searcher.opponent,
-			searcher.plist[COMBINE(searcher.player,king)]->sq)) {
-			searcher.undo_move(move);
-			continue;
+			searcher.plist[COMBINE(searcher.player,king)]->sq)
+			) {
+				searcher.undo_move(move);
+				continue;
 		}
 
 		tried = false;
@@ -146,8 +112,10 @@ BACK:
 		}
 
 		if(get_index(pos_index,tried)) {
-			/*update score*/
+
+			
 			if(!is_6man) {
+				/*update parent score and decrement count of moves*/
 				if(player == white) {
 					if(c1[pos_index] == 0 || c1[pos_index] == 0xff) {
 					} else {
@@ -166,6 +134,7 @@ BACK:
 					}
 				}
 			} else {
+				/*update parent if it is a win, otherwise verify*/
 				if(score == WIN) {
 					if(player == white)
 						SET(pos_index,score,ptab1);
@@ -201,7 +170,6 @@ BACK:
 
 		/*unmove*/
 		square[j] = from;
-
 
 		/*special position*/
 		special = false;
@@ -242,9 +210,10 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 
 		searcher.do_move(move);
 		if(searcher.attacks(searcher.player,
-			searcher.plist[COMBINE(searcher.opponent,king)]->sq)) {
-			searcher.undo_move(move);
-			continue;
+			searcher.plist[COMBINE(searcher.opponent,king)]->sq)
+			) {
+				searcher.undo_move(move);
+				continue;
 		}
 
 		legal_moves++;
@@ -313,13 +282,16 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 */
 bool ENUMERATOR::is_illegal(MYINT i,int side,bool& first) {
 	int j;
+
 	/*set up position*/
-	if(!first) {
+	if(first) {
+	} else {
 		for(j = 0;j < n_piece;j++) {
 			searcher.pcRemove(piece[j],SQ6488(square[j]));
 			searcher.board[SQ6488(square[j])] = empty;
 		}
 	}
+
 	if(!get_pos(i))
 		return true;
 
@@ -332,6 +304,7 @@ bool ENUMERATOR::is_illegal(MYINT i,int side,bool& first) {
 			searcher.board[SQ6488(square[j])] = piece[j];
 		}
 	}
+
 	/*test*/
 	if(side == white) {
 		if(searcher.attacks(white,searcher.plist[bking]->sq)) return true;

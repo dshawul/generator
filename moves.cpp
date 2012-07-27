@@ -15,16 +15,13 @@ void SEARCHER::do_move(const int& move) {
 	int from = m_from(move),to = m_to(move),sq;
 
 	pstack->epsquare = epsquare;
-	pstack->castle = castle;
-	pstack->fifty = fifty;
 
 	/*remove captured piece*/
 	if(m_capture(move)) {
-		if(is_ep(move)) {
+		if(is_ep(move))
 			sq = to - pawn_dir[player];
-		} else {
+		else
 			sq = to;
-		}
 		pcRemove(m_capture(move),sq);
 		board[sq] = empty;
 	}
@@ -41,40 +38,12 @@ void SEARCHER::do_move(const int& move) {
 		pcSwap(from,to);
 	}
 
-	/*move castle*/
-	if(is_castle(move)) {
-        int fromc,toc;
-		if(to > from) {
-           fromc = to + RR;
-		   toc = to + LL;
-		} else {
-           fromc = to + 2*LL;
-		   toc = to + RR;
-		}
-		board[toc] = board[fromc];
-		board[fromc] = empty;
-		pcSwap(fromc,toc);
-	} 
-
 	/*update current state*/
 	epsquare = 0;
-	fifty++;
 	if(PIECE(m_piece(move)) == pawn) {
-		fifty = 0;
 		if(to - from == (2 * pawn_dir[player])) {
             epsquare = ((to + from) >> 1);
 		}
-	} else if(m_capture(move)) {
-		fifty = 0;
-	}
-
-	/*has castling rights*/
-	if(castle) {
-		int p_castle = castle;
-		if(from == E1 || to == A1 || from == A1) castle &= ~WLC_FLAG;
-		if(from == E1 || to == H1 || from == H1) castle &= ~WSC_FLAG;
-		if(from == E8 || to == A8 || from == A8) castle &= ~BLC_FLAG;
-		if(from == E8 || to == H8 || from == H8) castle &= ~BSC_FLAG;
 	}
 
 	/*invert*/
@@ -94,26 +63,9 @@ void SEARCHER::undo_move(const int& move) {
 	opponent = invert(opponent);
 
     epsquare = pstack->epsquare;
-	castle = pstack->castle;
-	fifty = pstack->fifty;
 
 	to = m_to(move);
 	from = m_from(move);
-
-	/*unmove castle*/
-	if(is_castle(move)) {
-        int fromc,toc;
-		if(to > from) {
-           fromc = to + LL;
-		   toc = to + RR;
-		} else {
-           fromc = to + RR;
-		   toc = to + 2*LL;
-		}
-		board[toc] = board[fromc];
-		board[fromc] = empty;
-		pcSwap(fromc,toc);
-	} 
 
 	/*unmove piece*/
 	if(m_promote(move)) {
@@ -121,7 +73,6 @@ void SEARCHER::undo_move(const int& move) {
 		board[to] = empty;
 		pcAdd(COMBINE(player,pawn),from);
 		pcRemove(m_promote(move),to);
-
 	} else {
 		board[from] = board[to];
 		board[to] = empty;
@@ -130,11 +81,10 @@ void SEARCHER::undo_move(const int& move) {
 
 	/*insert captured piece*/
 	if(m_capture(move)) {
-		if(is_ep(move)) {
+		if(is_ep(move))
 			sq = to - pawn_dir[player];
-		} else {
+		else
 			sq = to;
-		}
 		board[sq] = m_capture(move);
 		pcAdd(m_capture(move),sq);
 	}
@@ -163,23 +113,6 @@ void SEARCHER::gen_noncaps() {
 	
 	if(player == white) {
 
-		/*castling*/
-		if((castle & WSLC_FLAG) && !attacks(black,E1)) {
-			if(castle & WSC_FLAG &&
-				board[F1] == empty &&
-				board[G1] == empty &&
-				!attacks(black,F1) &&
-				!attacks(black,G1))
-				*pmove++ = E1 | (G1<<8) | (wking<<16) | CASTLE_FLAG;
-			if(castle & WLC_FLAG &&
-				board[B1] == empty &&
-				board[C1] == empty &&
-				board[D1] == empty &&
-				!attacks(black,C1) &&
-				!attacks(black,D1)) {
-				*pmove++ = E1 | (C1<<8) | (wking<<16) | CASTLE_FLAG;
-			}
-		}
 		/*knight*/
 		current = plist[wknight];
 		while(current) {
@@ -263,24 +196,6 @@ void SEARCHER::gen_noncaps() {
 			current = current->next;
 		}
 	} else {
-
-		/*castling*/
-		if((castle & BSLC_FLAG) && !attacks(white,E8)) {
-			if(castle & BSC_FLAG &&
-				board[F8] == empty &&
-				board[G8] == empty &&
-				!attacks(white,F8) &&
-				!attacks(white,G8))
-				*pmove++ = E8 | (G8<<8) | (bking<<16) | CASTLE_FLAG;
-			if(castle & BLC_FLAG &&
-				board[B8] == empty &&
-				board[C8] == empty &&
-				board[D8] == empty &&
-				!attacks(white,C8) &&
-				!attacks(white,D8)) {
-				*pmove++ = E8 | (C8<<8) | (bking<<16) | CASTLE_FLAG;
-			}
-		}
 
 		/*knight*/
 		current = plist[bknight];
@@ -396,23 +311,6 @@ void SEARCHER::gen_all() {
 	
 	if(player == white) {
 
-		/*castling*/
-		if((castle & WSLC_FLAG) && !attacks(black,E1)) {
-			if(castle & WSC_FLAG &&
-				board[F1] == empty &&
-				board[G1] == empty &&
-				!attacks(black,F1) &&
-				!attacks(black,G1))
-				*pmove++ = E1 | (G1<<8) | (wking<<16) | CASTLE_FLAG;
-			if(castle & WLC_FLAG &&
-				board[B1] == empty &&
-				board[C1] == empty &&
-				board[D1] == empty &&
-				!attacks(black,C1) &&
-				!attacks(black,D1)) {
-				*pmove++ = E1 | (C1<<8) | (wking<<16) | CASTLE_FLAG;
-			}
-		}
 		/*knight*/
 		current = plist[wknight];
 		while(current) {
@@ -540,23 +438,6 @@ void SEARCHER::gen_all() {
 		}
 		/*end*/
 	} else {
-		/*castling*/
-		if((castle & BSLC_FLAG) && !attacks(white,E8)) {
-			if(castle & BSC_FLAG &&
-				board[F8] == empty &&
-				board[G8] == empty &&
-				!attacks(white,F8) &&
-				!attacks(white,G8))
-				*pmove++ = E8 | (G8<<8) | (bking<<16) | CASTLE_FLAG;
-			if(castle & BLC_FLAG &&
-				board[B8] == empty &&
-				board[C8] == empty &&
-				board[D8] == empty &&
-				!attacks(white,C8) &&
-				!attacks(white,D8)) {
-				*pmove++ = E8 | (C8<<8) | (bking<<16) | CASTLE_FLAG;
-			}
-		}
 
 		/*knight*/
 		current = plist[bknight];
@@ -922,9 +803,7 @@ void SEARCHER::set_pos(int count,int side,int* piece,int* square) {
 
 	player = side;
 	opponent = invert(side);
-	castle = 0;
 	epsquare = 0;
-	fifty = 0;
 	init_data();
 }
 /*attacks*/
