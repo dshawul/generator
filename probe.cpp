@@ -12,7 +12,6 @@ enum egbb_load_types {
 };
 
 #define _NOTFOUND 99999
-#define MAX_PIECES 9
 
 typedef int (CDECL *PPROBE_EGBB) (int player, int* piece,int* square);
 typedef void (CDECL *PLOAD_EGBB) (char* path,int cache_size,int load_options);

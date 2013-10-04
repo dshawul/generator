@@ -8,91 +8,8 @@ const int pic_tab[15] = {empty,king,queen,rook,bishop,knight,pawn,
 king,queen,rook,bishop,knight,pawn,elephant};
 
 /*
-MOVES
-*/
-void SEARCHER::do_move(const int& move) {
-
-	int from = m_from(move),to = m_to(move),sq;
-
-	pstack->epsquare = epsquare;
-
-	/*remove captured piece*/
-	if(m_capture(move)) {
-		if(is_ep(move))
-			sq = to - pawn_dir[player];
-		else
-			sq = to;
-		pcRemove(m_capture(move),sq);
-		board[sq] = empty;
-	}
-
-	/*move piece*/
-	if(m_promote(move)) {
-		board[to] = m_promote(move);
-		board[from] = empty;
-		pcAdd(m_promote(move),to);
-		pcRemove(COMBINE(player,pawn),from);
-	} else {
-		board[to] = board[from];
-		board[from] = empty;
-		pcSwap(from,to);
-	}
-
-	/*update current state*/
-	epsquare = 0;
-	if(PIECE(m_piece(move)) == pawn) {
-		if(to - from == (2 * pawn_dir[player])) {
-            epsquare = ((to + from) >> 1);
-		}
-	}
-
-	/*invert*/
-	player = invert(player);
-	opponent = invert(opponent);
-
-	ply++;
-	pstack++;
-}
-
-void SEARCHER::undo_move(const int& move) {
-	int to,from,sq;
-	pstack--;
-	ply--;
-
-	player = invert(player);
-	opponent = invert(opponent);
-
-    epsquare = pstack->epsquare;
-
-	to = m_to(move);
-	from = m_from(move);
-
-	/*unmove piece*/
-	if(m_promote(move)) {
-		board[from] = COMBINE(player,pawn);
-		board[to] = empty;
-		pcAdd(COMBINE(player,pawn),from);
-		pcRemove(m_promote(move),to);
-	} else {
-		board[from] = board[to];
-		board[to] = empty;
-		pcSwap(to,from);
-	}
-
-	/*insert captured piece*/
-	if(m_capture(move)) {
-		if(is_ep(move))
-			sq = to - pawn_dir[player];
-		else
-			sq = to;
-		board[sq] = m_capture(move);
-		pcAdd(m_capture(move),sq);
-	}
-}
-/*
 generate non-captures
 */
-
 #define NK_NONCAP(dir) {										\
 		to = from + dir;										\
 		if(board[to] == empty)									\
@@ -965,8 +882,8 @@ void print_move(const int& move) {
 	char f[6],t[6];
 	sq_str(m_from(move),f);
 	sq_str(m_to(move),t);
-	print("%s %s %c %c %c ep = %d cst=%d",f,t,piece_name[m_piece(move)],
-		piece_name[m_capture(move)],piece_name[m_promote(move)],is_ep(move),is_castle(move));
+	print("%s %s %c %c %c ep = %d",f,t,piece_name[m_piece(move)],
+		piece_name[m_capture(move)],piece_name[m_promote(move)],is_ep(move));
 }
 void SEARCHER::print_board() {
 	int i , j;

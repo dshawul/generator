@@ -1,15 +1,14 @@
 CC = g++
-CFLAGS = -O3
+CFLAGS = -O3 -fopenmp
 DEFINES =
-LDFLAGS = -fopenmp
+LDFLAGS = -fopenmp -lm -lpthread -ldl
 
 EXE = generate
 RM = rm -rf
 OBJ = generate.o index.o moves.o probe.o
 
 $(EXE): $(OBJ)
-	$(CC) $(CFLAGS) $(DEFINES) $(LDFLAGS) $(OBJ) -o $(EXE) -lm -lpthread -ldl
-
+	$(CC) $(DEFINES) $(LDFLAGS) $(OBJ) -o $(EXE)
 %.o: %.cpp
 	$(CC) $(CFLAGS) $(DEFINES) -c $<
 clean:

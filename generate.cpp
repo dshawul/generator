@@ -7,16 +7,16 @@
 * Store/get mechanisms
 */
 void SET(MYINT i,int value,UBMP8* ptab) {
-	MYINT q = (i / 4);
-	MYINT r = (i % 4);
+	MYINT q = (i >> 2);
+	MYINT r = (i & 3);
 	UBMP8* v = &ptab[q];
 	int myval = (int)(*v & ~(3 << (r << 1)));
 	myval |= ((1 - value) << (r << 1));
 	*v = (UBMP8)myval;
 }
 void GET(MYINT i,int& value, UBMP8* ptab) {
-	MYINT q = (i / 4);
-	MYINT r = (i % 4);
+	MYINT q = (i >> 2);
+	MYINT r = (i & 3);
 	value = 1 - ((ptab[q] >> (r << 1)) & 3);
 }
 /*
@@ -34,11 +34,11 @@ int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2) {
 	for(i = 0;i < searcher.pstack->count; i++) {
 		move = searcher.pstack->move_st[i];
 
-		searcher.do_move(move);
+		searcher.do_move<true>(move);
 		if(searcher.attacks(searcher.player,
 			searcher.plist[COMBINE(searcher.opponent,king)]->sq)
 			) {
-				searcher.undo_move(move);
+				searcher.undo_move<true>(move);
 				continue;
 		}
 
@@ -64,7 +64,7 @@ int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2) {
 		else 
 			GET(pos_index,score,ptab2);
 
-		searcher.undo_move(move);
+		searcher.undo_move<true>(move);
 
 		if(score == ILLEGAL) return score;
 		else if(-score != LOSS) return -score;
@@ -78,7 +78,7 @@ int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2) {
 void ENUMERATOR::get_retro_score(UBMP8* ptab1,UBMP8* ptab2,
 								 UBMP8* c1,UBMP8* c2,
 								 int score,bool is_6man) {
-	int i,j,wk,bk,move,from,to,count,tscore;
+	int i,j,wk,bk,move,from,to,tscore;
 	bool tried,special;
 	MYINT pos_index;
 
@@ -86,15 +86,14 @@ void ENUMERATOR::get_retro_score(UBMP8* ptab1,UBMP8* ptab2,
 	searcher.gen_retro();
 	score = -score;
 
-	count = 0;
 	for(i = 0;i < searcher.pstack->count; i++) {
 		move = searcher.pstack->move_st[i];
 
-		searcher.do_move(move);
+		searcher.do_move<true>(move);
 		if(searcher.attacks(searcher.opponent,
 			searcher.plist[COMBINE(searcher.player,king)]->sq)
 			) {
-				searcher.undo_move(move);
+				searcher.undo_move<true>(move);
 				continue;
 		}
 
@@ -189,7 +188,7 @@ BACK:
 			goto BACK;
 		}
 
-		searcher.undo_move(move);
+		searcher.undo_move<true>(move);
 	}
 }
 /*
@@ -208,17 +207,18 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 	for(i = 0;i < searcher.pstack->count; i++) {
 		move = searcher.pstack->move_st[i];
 
-		searcher.do_move(move);
-		if(searcher.attacks(searcher.player,
-			searcher.plist[COMBINE(searcher.opponent,king)]->sq)
-			) {
-				searcher.undo_move(move);
-				continue;
-		}
-
-		legal_moves++;
-
 		if(is_cap_prom(move)) {
+
+			searcher.do_move<false>(move);
+			if(searcher.attacks(searcher.player,
+				searcher.plist[COMBINE(searcher.opponent,king)]->sq)
+				) {
+					searcher.undo_move<false>(move);
+					continue;
+			}
+
+			legal_moves++;
+
 			if(searcher.probe_bitbases(score)) {
 				if(score > 0) {
 					score = WIN; 
@@ -228,7 +228,27 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 					score = DRAW;
 				}
 			}
+
+			searcher.undo_move<false>(move);
+
+			score = -score;
+			if(score == WIN) {
+				counter = 0;
+				return WIN;
+			}
+			if(score > best_score)
+				best_score = score;
 		} else {
+			searcher.do_move<true>(move);
+			if(searcher.attacks(searcher.player,
+				searcher.plist[COMBINE(searcher.opponent,king)]->sq)
+				) {
+					searcher.undo_move<true>(move);
+					continue;
+			}
+
+			legal_moves++;
+
 			wk = searcher.plist[wking]->sq;
 			bk = searcher.plist[bking]->sq;
 			if(!n_pawn
@@ -241,22 +261,9 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 			else 
 				counter += 1;
 
-			searcher.undo_move(move);
+			searcher.undo_move<true>(move);
 			continue;
 		}
-
-		score = -score;
-		if(score == WIN) {
-			counter = 0;
-			searcher.undo_move(move);
-			best_score = WIN;
-			break;
-		}
-		if(score > best_score) { 
-			best_score = score;
-		}
-
-		searcher.undo_move(move);
 	}
 
 	if(legal_moves == 0) {
@@ -451,8 +458,8 @@ void ENUMERATOR::backward_pass(
 					r1 = ((v1 == WIN && c1[i] != 0xff) || (v1 == LOSS && c1[i] == 0));
 					r2 = ((v2 == WIN && c2[i] != 0xff) || (v2 == LOSS && c2[i] == 0));
 				} else {
-					if(!pass) {
-						if(iteration > 1) {
+					if(pass) {
+						if(iteration > 0) {
 							r1 = (v1 == WIN && !(c1[i >> 3] & (1 << (i & 7))));
 							r2 = (v2 == WIN && !(c2[i >> 3] & (1 << (i & 7))));
 						} else {
@@ -460,7 +467,7 @@ void ENUMERATOR::backward_pass(
 							r2 = (v2 == WIN);
 						}
 					} else {
-						if(iteration > 1) {
+						if(iteration > 0) {
 							r1 = (v1 == LOSS && !(c1[i >> 3] & (1 << (i & 7))));
 							r2 = (v2 == LOSS && !(c2[i >> 3] & (1 << (i & 7))));
 						} else {
@@ -523,12 +530,6 @@ void ENUMERATOR::backward_pass(
 						c2[i] = 0xff;
 					more_to_do++;
 				}
-				
-				/*white to move*/
-				player = white;
-				searcher.player = white;
-				searcher.opponent = black;
-				/*end*/
 			}
 			if(!is_6man) break;
 		}
@@ -620,7 +621,6 @@ void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 			print("Thread %d/%d: start "FMT64" end "FMT64"\n",
 				threadId + 1,nThreads,start,end);
 
-			#pragma omp barrier
 			e.initial_pass(ptab1,ptab2,c1,c2,start,end,is_6man);
 		}
 
@@ -721,7 +721,11 @@ void generate(ENUMERATOR* penum) {
 	start = clock();
 	generate_slice(penum,fw,fb);
 	end = clock();
-	print("Generated in %.2f sec\n",float(end - start) / CLOCKS_PER_SEC);
+	ENUMERATOR::cumm_gen_time += (end - start);
+	print("Generated in %.2f sec : Cummulative %.2f sec\n",
+		float(end - start) / CLOCKS_PER_SEC,
+		float(ENUMERATOR::cumm_gen_time) / CLOCKS_PER_SEC
+		);
 
 	/*close files*/
 	fclose(fw);
@@ -736,7 +740,11 @@ void generate(ENUMERATOR* penum) {
 	penum->name[strlen(penum->name) - 1] = 'b';
 	penum->compress();
 	end = clock();
-	print("Compressed in %.2f sec\n",float(end - start) / CLOCKS_PER_SEC);
+	ENUMERATOR::cumm_comp_time += (end - start);
+	print("Compressed in %.2f sec : Cummulative %.2f sec\n",
+		float(end - start) / CLOCKS_PER_SEC,
+		float(ENUMERATOR::cumm_comp_time) / CLOCKS_PER_SEC
+		);
 
 	/*open egbb*/
 	penum->piece[penum->n_piece] = 0;
@@ -805,12 +813,16 @@ void ENUMERATOR::print_header() {
 /*
 Main
 */
+unsigned int ENUMERATOR::cumm_comp_time;
+unsigned int ENUMERATOR::cumm_gen_time;
+
 void print_help() {
 	printf("Usage: generate [options] -i <input> -o <output>\n\t"
 		"-n -- number of pieces including pawns\n\t"
 		"-p -- number of pawns\n\t"
 		"-i -- index of a single bitbase to generate with in the selected set\n\t"
-		"-h -- show this help message\n"
+		"-h -- show this help message\n\t"
+		"-t -- number of threads to use\n"
 		);
 }
 int main(int argc,char* argv[]) {
@@ -818,6 +830,23 @@ int main(int argc,char* argv[]) {
 	ENUMERATOR enumerator,*penum = &enumerator; 
 	int piece[MAX_PIECES];
 
+	int npieces = 0,npawns = 0,bindex = -1,nenums = 0,nThreads = 1;
+	for(int i = 0; i < argc; i++) {
+		if(!strcmp(argv[i],"-n")) {
+			npieces = atoi(argv[i+1]);
+		} else if(!strcmp(argv[i],"-p")) {
+			npawns = atoi(argv[i+1]);
+		} else if(!strcmp(argv[i],"-i")) {
+			bindex = atoi(argv[i+1]);
+		} else if(!strcmp(argv[i],"-t")) {
+			nThreads = atoi(argv[i+1]);
+		} else if(!strcmp(argv[i],"-h")) {
+			print_help();
+			return 0;
+		}
+	}
+
+	/*load egbbs*/
 	int egbb_cache_size = (32 * 1024 * 1024);
 #ifdef _MSC_VER
 	SEARCHER::egbb_is_loaded = LoadEgbbLibrary("egbb/",egbb_cache_size);
@@ -827,20 +856,9 @@ int main(int argc,char* argv[]) {
 
 	log_file = fopen("log.txt" ,"w");
 	init_indices();
-
-	int npieces = 0,npawns = 0,bindex = -1,nenums = 0;
-	for(int i = 0; i < argc; i++) {
-		if(!strcmp(argv[i],"-n")) {
-			npieces = atoi(argv[i+1]);
-		} else if(!strcmp(argv[i],"-p")) {
-			npawns = atoi(argv[i+1]);
-		} else if(!strcmp(argv[i],"-i")) {
-			bindex = atoi(argv[i+1]);
-		} else if(!strcmp(argv[i],"-h")) {
-			print_help();
-			return 0;
-		}
-	}
+	ENUMERATOR::cumm_gen_time = 0;
+	ENUMERATOR::cumm_comp_time = 0;
+	omp_set_num_threads(nThreads);
 
 	/*ADD files*/
 #define ADD() {										\

@@ -15,6 +15,8 @@
 
 #include "my_types.h"
 
+#define  MYINT   UBMP64
+
 /*types*/
 enum COLORS {
 	white,black,neutral
@@ -34,18 +36,17 @@ enum FILES {
 };
 enum SQUARES {
 	A1 = 0,B1,C1,D1,E1,F1,G1,H1,
-		A2 = 16,B2,C2,D2,E2,F2,G2,H2,
-		A3 = 32,B3,C3,D3,E3,F3,G3,H3,
-		A4 = 48,B4,C4,D4,E4,F4,G4,H4,
-		A5 = 64,B5,C5,D5,E5,F5,G5,H5,
-		A6 = 80,B6,C6,D6,E6,F6,G6,H6,
-		A7 = 96,B7,C7,D7,E7,F7,G7,H7,
-		A8 = 112,B8,C8,D8,E8,F8,G8,H8
+	A2 = 16,B2,C2,D2,E2,F2,G2,H2,
+	A3 = 32,B3,C3,D3,E3,F3,G3,H3,
+	A4 = 48,B4,C4,D4,E4,F4,G4,H4,
+	A5 = 64,B5,C5,D5,E5,F5,G5,H5,
+	A6 = 80,B6,C6,D6,E6,F6,G6,H6,
+	A7 = 96,B7,C7,D7,E7,F7,G7,H7,
+	A8 = 112,B8,C8,D8,E8,F8,G8,H8
 };
-enum RESULTS{
+enum RESULTS {
 	ILLEGAL = -2,LOSS = -1,DRAW = 0,WIN = 1
 };
-
 #define RR    0x01
 #define LL   -0x01
 #define RU    0x11
@@ -69,7 +70,6 @@ enum RESULTS{
 #define RRR   0x02
 #define LLL  -0x02
 
-
 #define KM       1
 #define QM       2
 #define RM       4
@@ -82,7 +82,7 @@ enum RESULTS{
 
 #define MAX_STR            256
 #define MAX_MOVES          256
-#define MAX_PLY             70
+#define MAX_PLY              2
 
 /*square*/
 #define file(x)          ((x) &  7)
@@ -135,17 +135,45 @@ enum RESULTS{
 #define m_promote(x)     (((x) & PROMOTION_FLAG) >> 24)
 #define is_cap_prom(x)   ((x) & CAP_PROM)
 #define is_ep(x)         ((x) & EP_FLAG)
-#define is_castle(x)     ((x) & CASTLE_FLAG)
 
-#define WSC_FLAG       1
-#define WLC_FLAG       2
-#define BSC_FLAG       4
-#define BLC_FLAG       8
-#define WSLC_FLAG      3
-#define BSLC_FLAG     12 
-#define WBC_FLAG      15
+/*rotation flags*/
+#define rotF  1
+#define rotR  2
+#define rotD  4
 
-#define MYINT     UBMP64
+/*
+globals
+*/
+extern const int col_tab[15];
+extern const int pic_tab[15];
+extern const int pawn_dir[2];
+extern BMP16 KK_index[4096];
+extern BMP16 KK_WP_index[4096];
+extern BMP16 KK_rotation[4096];
+extern BMP16 KK_WP_rotation[4096];
+extern BMP16 KK_square[462];
+extern BMP16 KK_WP_square[1806];
+
+const char piece_name[] = "_KQRBNPkqrbnp_";
+
+void init_indices();
+void print(const char* format,...);
+void print_pc(const int& pc);
+void print_sq(const int& sq);
+void print_move(const int& move);
+
+int get_index_like(int* square, const int N);
+void get_squares_like(int* sq,const int N,const int index);
+
+int LoadEgbbLibrary(char* path,int);
+typedef int (CDECL *POPEN_EGBB) (int*);
+extern POPEN_EGBB open_egbb;
+
+extern const UBMP8* const _sqatt_pieces;
+extern const BMP8* const _sqatt_step;
+
+#define sqatt_pieces(sq)        _sqatt_pieces[sq]
+#define sqatt_step(sq)          _sqatt_step[sq]
 
 /*
 Type definitions
@@ -170,11 +198,11 @@ typedef struct SEARCHER{
 	int player;
 	int opponent;
 	int epsquare;
+	int ply;
 	int temp_board[224];
 	int* const board;
 	PLIST list[128];
 	PLIST plist[15];
-	int ply;
 	PSTACK pstack;
 	STACK stack[MAX_PLY];
 
@@ -184,15 +212,16 @@ typedef struct SEARCHER{
 	void  pcAdd(int,int);
 	void  pcRemove(int,int);
 	void  pcSwap(int,int);
-	void  PUSH_MOVE(int);
-	void  POP_MOVE(int);
-	void  do_move(const int&);
-    void  undo_move(const int&);
+	template<bool isNc>
+	void  do_move(const int);
+	template<bool isNc>
+    void  undo_move(const int);
 	void  gen_all();
 	void  gen_noncaps();
 	void  gen_retro();
 	void  init_data();
-	void  set_pos(int count,int side,int* piece,int* square);
+	void  set_pos(int count,int side,
+		int* piece,int* square);
 	void  print_board();
 	/*
 	Bitbases
@@ -241,49 +270,101 @@ FORCEINLINE void SEARCHER::pcSwap(int from,int to) {
     pFrom->sq = from;
 }
 /*
-globals
+MOVES
 */
-extern const int col_tab[15];
-extern const int pic_tab[15];
-extern const int pawn_dir[2];
-extern BMP16 KK_index[4096];
-extern BMP16 KK_WP_index[4096];
-extern BMP16 KK_rotation[4096];
-extern BMP16 KK_WP_rotation[4096];
-extern BMP16 KK_square[462];
-extern BMP16 KK_WP_square[1806];
+template <bool isNc>
+void SEARCHER::do_move(const int move) {
+	int from = m_from(move),to = m_to(move);
+	if(isNc) {
+		board[to] = board[from];
+		board[from] = empty;
+		pcSwap(from,to);
+	} else {
+		int sq;
+		pstack->epsquare = epsquare;
 
-const char piece_name[] = "_KQRBNPkqrbnp_";
+		/*remove captured piece*/
+		if(m_capture(move)) {
+			if(is_ep(move))
+				sq = to - pawn_dir[player];
+			else
+				sq = to;
+			pcRemove(m_capture(move),sq);
+			board[sq] = empty;
+		}
 
-void init_indices();
-void print(const char* format,...);
-void print_pc(const int& pc);
-void print_sq(const int& sq);
-void print_move(const int& move);
+		/*move piece*/
+		if(m_promote(move)) {
+			board[to] = m_promote(move);
+			board[from] = empty;
+			pcAdd(m_promote(move),to);
+			pcRemove(COMBINE(player,pawn),from);
+		} else {
+			board[to] = board[from];
+			board[from] = empty;
+			pcSwap(from,to);
+		}
 
-int get_index_like(int* square, const int N);
-void get_squares_like(int* sq,const int N,const int index);
+		/*update current state*/
+		epsquare = 0;
+		if(PIECE(m_piece(move)) == pawn) {
+			if(to - from == (2 * pawn_dir[player])) {
+				epsquare = ((to + from) >> 1);
+			}
+		}
+	}
+	/*invert*/
+	player = invert(player);
+	opponent = invert(opponent);
+	ply++;
+	pstack++;
+}
 
-int LoadEgbbLibrary(char* path,int);
-typedef int (CDECL *POPEN_EGBB) (int*);
-extern POPEN_EGBB open_egbb;
+template<bool isNc>
+void SEARCHER::undo_move(const int move) {
+	int to = m_to(move),from = m_from(move);
 
-extern const UBMP8* const _sqatt_pieces;
-extern const BMP8* const _sqatt_step;
-#define sqatt_pieces(sq)        _sqatt_pieces[sq]
-#define sqatt_step(sq)          _sqatt_step[sq]
+	pstack--;
+	ply--;
+	player = invert(player);
+	opponent = invert(opponent);
 
-/*
-Some defs
-*/
-#define MAX_PIECES  9
-#define rotF  1
-#define rotR  2
-#define rotD  4
+	if(isNc) {
+		board[from] = board[to];
+		board[to] = empty;
+		pcSwap(to,from);
+	} else {
+		int sq;
+		epsquare = pstack->epsquare;
+
+		/*unmove piece*/
+		if(m_promote(move)) {
+			board[from] = COMBINE(player,pawn);
+			board[to] = empty;
+			pcAdd(COMBINE(player,pawn),from);
+			pcRemove(m_promote(move),to);
+		} else {
+			board[from] = board[to];
+			board[to] = empty;
+			pcSwap(to,from);
+		}
+		/*insert captured piece*/
+		if(m_capture(move)) {
+			if(is_ep(move))
+				sq = to - pawn_dir[player];
+			else
+				sq = to;
+			board[sq] = m_capture(move);
+			pcAdd(m_capture(move),sq);
+		}
+	}
+}
 
 /*
 Enumerator
 */
+#define MAX_PIECES  8
+
 struct ENUMERATOR {
 	int piece[MAX_PIECES];
 	int square[MAX_PIECES];
@@ -301,6 +382,8 @@ struct ENUMERATOR {
 	MYINT slice_size;
 	char name[64];
 	SEARCHER searcher;
+	static unsigned int cumm_gen_time;
+	static unsigned int cumm_comp_time;
 
 	ENUMERATOR() {
 		n_piece = 0;
@@ -350,17 +433,17 @@ struct ENUMERATOR {
 		player = white;
 	}
 	void init();
+	void print_header();
 	void sort(int);
+	void compress();
 	bool get_pos(MYINT);
 	bool get_index(MYINT&,bool = false);
 	int  verify(UBMP8*,UBMP8*);
+	bool is_illegal(MYINT,int,bool&);
 	int  get_init_score(UBMP8&,int,int,bool is_6man);
     void get_retro_score(UBMP8*,UBMP8*,UBMP8*,UBMP8*,int,bool is_6man);
 	void initial_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
 	void backward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
-	void compress();
-	void print_header();
-	bool is_illegal(MYINT,int,bool&);
 };
 /*
 end

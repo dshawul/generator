@@ -184,14 +184,13 @@ void init_indices() {
 
 /*
 ** Indexing and de-indexing functions for k similar pieces which
-** have k! unique placements on a chess board. This method of binomial
+** have k! non-unique placements on a chess board. This method of binomial
 ** indexing is courtesy of syzygy of CCRL forum.
 */
-
 /*
 Lookup table for combination 
 */
-static int combination[64][5] = {
+static const int combination[64][5] = {
       0,       0,       0,       0,       0,
       1,       0,       0,       0,       0,
       2,       1,       0,       0,       0,
@@ -301,7 +300,7 @@ void get_squares_like(int* sq,const int N,const int index) {
 }
 
 /*
- * globals
+ * peice value for determining which piece is stronger
  */
 static const int piece_v[15] = {
 	0,0,975,500,326,325,100,0,975,500,326,325,100,0
@@ -325,8 +324,7 @@ static const int original_order[12] = {
 };
 
 /*
- * order pieces based on the streaming order used
- * by the generator.
+ * Order pieces based on the streaming order used by the generator.
  */		
 void ENUMERATOR::sort(int type) {
 	int i,j,pic,order,stronger;
@@ -470,10 +468,17 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 	MYINT temp;
 	int i,k,rot,sq,ispawn,N;
 
-	/*save*/
-	for(i = 0;i < n_piece;i++) {
-		res2[i] = square[i];
+	/*illegal pawn placement on kings' square*/
+	if(n_pawn) {
+		for(i = pawn_loc;i < pawn_loc + n_pawn; i++) {
+			if(square[i] == square[king_loc] || square[i] == square[king_loc + 1]) {
+				return false;
+			}
+		}
 	}
+
+	/*save*/
+	memcpy(res2,square,n_piece * sizeof(int));
 
 	/*rotate*/
 	if(n_pawn) 
@@ -490,16 +495,6 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 			square[i] = sq;
 		}
 	}
-
-	/*illegal pawn placement on kings' square*/
-	if(n_pawn) {
-		for(i = pawn_loc;i < pawn_loc + n_pawn; i++) {
-			if(square[i] == square[king_loc] || square[i] == square[king_loc + 1]) {
-				return false;
-			}
-		}
-	}
-
 	/*legal placement based on other piece location*/
 	for(i = n_piece - 1;i >= 0; --i) {
 
@@ -550,6 +545,7 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 			if(square[i] >= res1[k]) 
 				square[i]--;
 		}
+		/*end*/
 	}
 
 	/*primary locations*/
@@ -592,9 +588,7 @@ bool ENUMERATOR::get_index(MYINT& pindex,bool special) {
 	}
 	
 	/*restore*/
-	for(i = 0;i < n_piece;i++) {
-		square[i] = res2[i];
-	}
+	memcpy(square,res2,n_piece * sizeof(int));
 
 	/*limit range*/
 	pindex %= slice_size;
