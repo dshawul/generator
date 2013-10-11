@@ -165,7 +165,7 @@ void print_move(const int& move);
 int get_index_like(int* square, const int N);
 void get_squares_like(int* sq,const int N,const int index);
 
-int LoadEgbbLibrary(char* path,int);
+int LoadEgbbLibrary(const char* path,int);
 typedef int (CDECL *POPEN_EGBB) (int*);
 extern POPEN_EGBB open_egbb;
 
@@ -229,6 +229,8 @@ typedef struct SEARCHER{
 	int probe_bitbases(int&);
 	static int egbb_is_loaded;
 	static int egbb_load_type;
+	static int egbb_cache_size;
+	static char egbb_path[128];
 } *PSEARCHER;
 
 /*
@@ -380,10 +382,11 @@ struct ENUMERATOR {
 	int pawn_loc;
 	int slice_i;
 	MYINT slice_size;
-	char name[64];
+	char name[128];
 	SEARCHER searcher;
 	static unsigned int cumm_gen_time;
 	static unsigned int cumm_comp_time;
+	static unsigned int more_to_do;
 
 	ENUMERATOR() {
 		n_piece = 0;
@@ -438,8 +441,7 @@ struct ENUMERATOR {
 	void compress();
 	bool get_pos(MYINT);
 	bool get_index(MYINT&,bool = false);
-	int  verify(UBMP8*,UBMP8*);
-	bool is_illegal(MYINT,int,bool&);
+	int  verify(UBMP8*,UBMP8*,UBMP8*,UBMP8*);
 	int  get_init_score(UBMP8&,int,int,bool is_6man);
     void get_retro_score(UBMP8*,UBMP8*,UBMP8*,UBMP8*,int,bool is_6man);
 	void initial_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);

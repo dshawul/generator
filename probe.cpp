@@ -14,7 +14,7 @@ enum egbb_load_types {
 #define _NOTFOUND 99999
 
 typedef int (CDECL *PPROBE_EGBB) (int player, int* piece,int* square);
-typedef void (CDECL *PLOAD_EGBB) (char* path,int cache_size,int load_options);
+typedef void (CDECL *PLOAD_EGBB) (const char* path,int cache_size,int load_options);
 static PPROBE_EGBB probe_egbb;
 POPEN_EGBB open_egbb;
 
@@ -45,7 +45,7 @@ Load the dll and get the address of the load and probe functions.
 #    define GetProcAddress dlsym
 #endif
 
-int LoadEgbbLibrary(char* main_path,int egbb_cache_size) {
+int LoadEgbbLibrary(const char* main_path,int egbb_cache_size) {
 	HMODULE hmod;
 	PLOAD_EGBB load_egbb;
 	char path[256];

@@ -308,19 +308,15 @@ static const int piece_v[15] = {
 
 /*
  * Streaming order for pieces for any of the following cases.
- *  - Optimized for better compression
- *  - Slicing egbbs
- *  - Highest mobility piece placed last for better cache use
+ *  - Pieces are ordered in order of increasing mobility. This helps caching
+ *    because of increased locality which stands for both RAM and disk access.
+ *    Also since pawns are at the front it allows for p-slicing of egbbs.
+ *    Better compression can be obtained by permuting the pieces but I do not
+ *    plan to do that because of the previous valuable effects.
  */
 static const int piece_order[2][12] = {
 	{bpawn,wpawn,bking,wking,bknight,wknight,bbishop,wbishop,brook,wrook,bqueen,wqueen}, 
 	{wpawn,bpawn,wking,bking,wknight,bknight,wbishop,bbishop,wrook,brook,wqueen,bqueen}
-};
-/*
- * Original piece order
- */
-static const int original_order[12] = {
-	wking,wqueen,wrook,wbishop,wknight,wpawn,bking,bqueen,brook,bbishop,bknight,bpawn
 };
 
 /*
@@ -329,6 +325,9 @@ static const int original_order[12] = {
 void ENUMERATOR::sort(int type) {
 	int i,j,pic,order,stronger;
 	int vcount[2] = {0,0};
+	static const int original_order[12] = {
+		wking,wqueen,wrook,wbishop,wknight,wpawn,bking,bqueen,brook,bbishop,bknight,bpawn
+	};
 
     /*check whether to switch sides*/
 	for(i = 0;i < n_piece; i++)
@@ -367,11 +366,7 @@ void ENUMERATOR::init() {
 		i,j,pic;
 
 	/*name*/
-#ifdef _MSC_VER
-	strcpy(name,"egbb/");
-#else
-	strcpy(name,"./egbb/");
-#endif
+	strcpy(name,SEARCHER::egbb_path);
 	char nm[16];
 	for(i = 0;i < n_piece; i++)
 		nm[i] = piece_name[piece[i]];

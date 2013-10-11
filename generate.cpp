@@ -19,11 +19,16 @@ void GET(MYINT i,int& value, UBMP8* ptab) {
 	MYINT r = (i & 3);
 	value = 1 - ((ptab[q] >> (r << 1)) & 3);
 }
+#define SETC(posi,tab) tab[posi >> 3] |=  (1 << (posi & 7))
+#define CLRC(posi,tab) tab[posi >> 3] &= ~(1 << (posi & 7))
+#define ISSET(posi,tab) (tab[posi >> 3] & (1 << (posi & 7)))
+
 /*
 * Verify if the value for a positon has become known
 * by making all possible moves.
 */
-int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2) {
+int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2,
+					   UBMP8* c1,UBMP8* c2) {
 	int i,j,from,to,move,score;
 	MYINT pos_index;
 
@@ -33,8 +38,9 @@ int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2) {
 
 	for(i = 0;i < searcher.pstack->count; i++) {
 		move = searcher.pstack->move_st[i];
-
 		searcher.do_move<true>(move);
+
+		/*check legality of move*/
 		if(searcher.attacks(searcher.player,
 			searcher.plist[COMBINE(searcher.opponent,king)]->sq)
 			) {
@@ -42,7 +48,7 @@ int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2) {
 				continue;
 		}
 
-
+		/*squares*/
 		from = SQ8864(m_from(move));
 		to = SQ8864(m_to(move));
 
@@ -57,29 +63,32 @@ int ENUMERATOR::verify(UBMP8* ptab1,UBMP8* ptab2) {
 		get_index(pos_index);
 
 		square[j] = from;
-		/*end*/
 
-		if(searcher.player == white) 
+		/*get score of child*/
+		if(searcher.player == white)
 			GET(pos_index,score,ptab1);
-		else 
+		else
 			GET(pos_index,score,ptab2);
 
 		searcher.undo_move<true>(move);
 
-		if(score == ILLEGAL) return score;
-		else if(-score != LOSS) return -score;
+		if(score == ILLEGAL || score == DRAW) 
+			return ILLEGAL;
+		else if(-score == WIN) 
+			return WIN;
 	}
 
 	return LOSS;
 }
+
 /*
 * Retrograde analysis of parents
 */
 void ENUMERATOR::get_retro_score(UBMP8* ptab1,UBMP8* ptab2,
 								 UBMP8* c1,UBMP8* c2,
-								 int score,bool is_6man) {
-	int i,j,wk,bk,move,from,to,tscore;
-	bool tried,special;
+								 int score,bool compact_count) {
+	int i,j,move,from,to,tscore;
+	bool tried;
 	MYINT pos_index;
 
 	searcher.pstack->count = 0;
@@ -88,8 +97,9 @@ void ENUMERATOR::get_retro_score(UBMP8* ptab1,UBMP8* ptab2,
 
 	for(i = 0;i < searcher.pstack->count; i++) {
 		move = searcher.pstack->move_st[i];
-
 		searcher.do_move<true>(move);
+
+		/*check legality of move*/
 		if(searcher.attacks(searcher.opponent,
 			searcher.plist[COMBINE(searcher.player,king)]->sq)
 			) {
@@ -97,6 +107,7 @@ void ENUMERATOR::get_retro_score(UBMP8* ptab1,UBMP8* ptab2,
 				continue;
 		}
 
+		/*squares*/
 		tried = false;
 		from = SQ8864(m_from(move));
 		to = SQ8864(m_to(move));
@@ -111,91 +122,79 @@ BACK:
 		}
 
 		if(get_index(pos_index,tried)) {
-
-			
-			if(!is_6man) {
-				/*update parent score and decrement count of moves*/
-				if(player == white) {
-					if(c1[pos_index] == 0 || c1[pos_index] == 0xff) {
-					} else {
-						c1[pos_index]--;
-						GET(pos_index,tscore,ptab1);
-						if(tscore < score) 
-							SET(pos_index,score,ptab1);
-					}
-				} else {
-					if(c2[pos_index] == 0 || c2[pos_index] == 0xff) {
-					} else {
-						c2[pos_index]--;
-						GET(pos_index,tscore,ptab2);
-						if(tscore < score) 
-							SET(pos_index,score,ptab2);
-					}
-				}
-			} else {
-				/*update parent if it is a win, otherwise verify*/
+			if(!compact_count) {
 				if(score == WIN) {
+					/*mark as sure win*/
 					if(player == white)
 						SET(pos_index,score,ptab1);
 					else
 						SET(pos_index,score,ptab2);
-				} else  {
+				} else if (score == LOSS)  {
+					/*mark as potential loss*/
+					if(player == white) {
+						if(c1[pos_index] == 0 || c1[pos_index] == 0xff) {
+						} else {
+							c1[pos_index]--;
+						}
+					} else {
+						if(c2[pos_index] == 0 || c2[pos_index] == 0xff) {
+						} else {
+							c2[pos_index]--;
+						}
+					}
+				}
+			} else {
+				if(score == WIN) {
+					/*mark as sure win*/
+					if(player == white)
+						SET(pos_index,score,ptab1);
+					else
+						SET(pos_index,score,ptab2);
+				} else if (score == LOSS)  {
+					/*mark as potential loss*/
 					if(player == white) 
 						GET(pos_index,tscore,ptab1);
 					else 
 						GET(pos_index,tscore,ptab2);
-
 					if(tscore == ILLEGAL) {
-						player = invert(player);
-						searcher.player = invert(searcher.player);
-						searcher.opponent = invert(searcher.opponent);
-
-						tscore = verify(ptab1,ptab2);
-
-						player = invert(player);
-						searcher.player = invert(searcher.player);
-						searcher.opponent = invert(searcher.opponent);
-
-						if(tscore != ILLEGAL && tscore != DRAW) {
-							if(player == white)
-								SET(pos_index,tscore,ptab1);
-							else
-								SET(pos_index,tscore,ptab2);
+						if(player == white) {
+							SET(pos_index,DRAW,ptab1);
+							SETC(pos_index,c1);
+						} else {
+							SET(pos_index,DRAW,ptab2);
+							SETC(pos_index,c2);
 						}
 					}
 				}
 			}
 		}
 
-		/*unmove*/
 		square[j] = from;
 
 		/*special position*/
-		special = false;
-		wk = searcher.plist[wking]->sq;
-		bk = searcher.plist[bking]->sq;
+		int wk = searcher.plist[wking]->sq;
+		int bk = searcher.plist[bking]->sq;
 		if(!n_pawn
-			&& ( (rank(wk) == file(wk) && abs(sqatt_step(wk - bk)) == RU)
+			&& ( 
+			(rank(wk) == file(wk) && abs(sqatt_step(wk - bk)) == RU)
 			||
 			(rank(wk) + file(wk) == 7 && abs(sqatt_step(wk - bk)) == LU)
-			)
-			)   
-			special = true;
-
-		/*redo for special postion*/
-		if(!n_pawn && !tried && special) {
-			tried = true;
-			goto BACK;
+			)) {
+				if(!tried) {
+					tried = true;
+					goto BACK;
+				}
 		}
 
+		/*undo*/
 		searcher.undo_move<true>(move);
 	}
 }
 /*
 * Forward analysis of children nodes
 */
-int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_6man) {
-	int i,move,wk,bk,
+int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool compact_count) {
+	int i,move,
 		score,best_score,legal_moves;
 
 	/*initialize*/
@@ -203,13 +202,14 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 	legal_moves = 0;
 	searcher.pstack->count = 0;
 	searcher.gen_all();
-
+	
 	for(i = 0;i < searcher.pstack->count; i++) {
 		move = searcher.pstack->move_st[i];
 
 		if(is_cap_prom(move)) {
-
 			searcher.do_move<false>(move);
+
+			/*check legality of move*/
 			if(searcher.attacks(searcher.player,
 				searcher.plist[COMBINE(searcher.opponent,king)]->sq)
 				) {
@@ -218,6 +218,7 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 			}
 
 			legal_moves++;
+
 
 			if(searcher.probe_bitbases(score)) {
 				if(score > 0) {
@@ -240,6 +241,7 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 				best_score = score;
 		} else {
 			searcher.do_move<true>(move);
+			/*check legality of move*/
 			if(searcher.attacks(searcher.player,
 				searcher.plist[COMBINE(searcher.opponent,king)]->sq)
 				) {
@@ -249,14 +251,14 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 
 			legal_moves++;
 
-			wk = searcher.plist[wking]->sq;
-			bk = searcher.plist[bking]->sq;
+			int wk = searcher.plist[wking]->sq;
+			int bk = searcher.plist[bking]->sq;
 			if(!n_pawn
-				&& ( (rank(wk) == file(wk) && abs(sqatt_step(wk - bk)) == RU)
+				&& ( 
+				(rank(wk) == file(wk) && abs(sqatt_step(wk - bk)) == RU)
 				||
 				(rank(wk) + file(wk) == 7 && abs(sqatt_step(wk - bk)) == LU)
-				)
-				)   
+				))   
 				counter += 2;
 			else 
 				counter += 1;
@@ -265,7 +267,7 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 			continue;
 		}
 	}
-
+	
 	if(legal_moves == 0) {
 		if(searcher.player == white) {
 			if(b_checks) {
@@ -285,49 +287,13 @@ int ENUMERATOR::get_init_score(UBMP8& counter,int w_checks,int b_checks,bool is_
 	return best_score;
 }
 /*
-* Illegal positon filtering
-*/
-bool ENUMERATOR::is_illegal(MYINT i,int side,bool& first) {
-	int j;
-
-	/*set up position*/
-	if(first) {
-	} else {
-		for(j = 0;j < n_piece;j++) {
-			searcher.pcRemove(piece[j],SQ6488(square[j]));
-			searcher.board[SQ6488(square[j])] = empty;
-		}
-	}
-
-	if(!get_pos(i))
-		return true;
-
-	if(first) {
-		searcher.set_pos(n_piece,player,piece,square);
-		first = false;
-	} else {
-		for(j = 0;j < n_piece;j++) {	
-			searcher.pcAdd(piece[j],SQ6488(square[j]));
-			searcher.board[SQ6488(square[j])] = piece[j];
-		}
-	}
-
-	/*test*/
-	if(side == white) {
-		if(searcher.attacks(white,searcher.plist[bking]->sq)) return true;
-	} else {
-		if(searcher.attacks(black,searcher.plist[wking]->sq)) return true;
-	}
-	return false;
-}
-/*
 * Initial pass
 */
 void ENUMERATOR::initial_pass(
 							  UBMP8* ptab1,UBMP8* ptab2,
 							  UBMP8* c1,UBMP8* c2,
 							  const MYINT& s,const MYINT& e,
-							  bool is_6man) {
+							  bool compact_count) {
 	int j,w_checks,b_checks,first,score;
 	UBMP8 temp;
 
@@ -336,15 +302,8 @@ void ENUMERATOR::initial_pass(
 	{
 		start = clock();
 
+		MYINT icount = 0;
 		for(MYINT i = s;i < e;i++) {
-
-			/*verbose*/
-			if(is_6man) {
-				if((i % (size / 100)) == 0) printf(".");
-			} else {
-				if((i % (size / 10)) == 0) printf(".");
-			}
-
 			/*
 			set up position
 			*/
@@ -356,11 +315,17 @@ void ENUMERATOR::initial_pass(
 				}
 			}
 			
-			while(!get_pos(i)) {
+			while((i < e) && !get_pos(i)) {
 				SET(i,ILLEGAL,ptab1);
 				SET(i,ILLEGAL,ptab2);
+				if(compact_count) {
+					SETC(i,c1);
+					SETC(i,c2);
+				}
 				i++;
 			}
+			if(i >= e) break;
+			icount++;
 
 			if(first) {
 				searcher.set_pos(n_piece,player,piece,square);
@@ -383,14 +348,16 @@ void ENUMERATOR::initial_pass(
 
 			if(w_checks) {
 				SET(i,ILLEGAL,ptab1);
+				if(compact_count)
+					SETC(i,c1);
 			} else {
-				if(!is_6man) {
-					score = get_init_score(c1[i],w_checks,b_checks,is_6man);
+				if(!compact_count) {
+					score = get_init_score(c1[i],w_checks,b_checks,compact_count);
 					if(score == ILLEGAL) score = LOSS;
 					SET(i,score,ptab1);
 				} else {
 					temp = 0;
-					score = get_init_score(temp,w_checks,b_checks,is_6man);
+					score = get_init_score(temp,w_checks,b_checks,compact_count);
 					if(score == LOSS && temp) score = ILLEGAL;
 					SET(i,score,ptab1);
 				}
@@ -403,14 +370,16 @@ void ENUMERATOR::initial_pass(
 
 			if(b_checks) {
 				SET(i,ILLEGAL,ptab2);
+				if(compact_count)
+					SETC(i,c2);
 			} else {
-				if(!is_6man) {
-					score = get_init_score(c2[i],w_checks,b_checks,is_6man);
+				if(!compact_count) {
+					score = get_init_score(c2[i],w_checks,b_checks,compact_count);
 					if(score == ILLEGAL) score = LOSS;
 					SET(i,score,ptab2);
 				} else {
 					temp = 0;
-					score = get_init_score(temp,w_checks,b_checks,is_6man);
+					score = get_init_score(temp,w_checks,b_checks,compact_count);
 					if(score == LOSS && temp) score = ILLEGAL;
 					SET(i,score,ptab2);
 				}
@@ -418,7 +387,8 @@ void ENUMERATOR::initial_pass(
 		}
 
 		end = clock();
-		print("\r<>iteration %3d [%.2f sec]\t\t\n",0,float(end - start) / CLOCKS_PER_SEC);
+		print("\r<>iteration %3d [%.2f sec] "FMT64"\t\t\n",
+			0,float(end - start) / CLOCKS_PER_SEC,icount);
 	}
 }
 /*
@@ -428,57 +398,53 @@ void ENUMERATOR::backward_pass(
 							   UBMP8* ptab1,UBMP8* ptab2,
 							   UBMP8* c1,UBMP8* c2,
 							   const MYINT& s,const MYINT& e,
-							   bool is_6man
+							   bool compact_count
 							   ) {
-	MYINT i;
+	MYINT i,icount;
 	clock_t start,end;
-	int j,v1,v2,r1,r2,first,pass;
-	int more_to_do;
+	int j,v1,v2,r1,r2,first;
 	int iteration = 0;
 	do
 	{
+		/*wait for all threads*/
+#pragma omp barrier
+
+		/*set count to 0*/
 		more_to_do = 0;
+		icount = 0;
 		first = true;
 		start = clock();
+		int pend = (compact_count ? 3 : 2);
 
-		for(pass = 0;pass < 2;pass++) {
+		for(int pass = 0;pass < pend;pass++) {
 			for(i = s;i < e;i++) {
-				
-				/*verbose*/
-				if(is_6man) {
-					if((i % (size / 50)) == 0) printf(".");
-				} else {
-					if((i % (size / 10)) == 0) printf(".");
-				}
-				
 				/*one of the scores should be known*/
 				GET(i,v1,ptab1);
 				GET(i,v2,ptab2);
-				if(!is_6man) {
-					r1 = ((v1 == WIN && c1[i] != 0xff) || (v1 == LOSS && c1[i] == 0));
-					r2 = ((v2 == WIN && c2[i] != 0xff) || (v2 == LOSS && c2[i] == 0));
-				} else {
-					if(pass) {
-						if(iteration > 0) {
-							r1 = (v1 == WIN && !(c1[i >> 3] & (1 << (i & 7))));
-							r2 = (v2 == WIN && !(c2[i >> 3] & (1 << (i & 7))));
-						} else {
-							r1 = (v1 == WIN);
-							r2 = (v2 == WIN);
-						}
+				if(!compact_count) {
+					if(pass == 0) {
+						r1 = (v1 == LOSS && c1[i] == 0);
+						r2 = (v2 == LOSS && c2[i] == 0);
 					} else {
-						if(iteration > 0) {
-							r1 = (v1 == LOSS && !(c1[i >> 3] & (1 << (i & 7))));
-							r2 = (v2 == LOSS && !(c2[i >> 3] & (1 << (i & 7))));
-						} else {
-							r1 = (v1 == LOSS);
-							r2 = (v2 == LOSS);
-						}
+						r1 = (v1 == WIN && c1[i] != 0xff);
+						r2 = (v2 == WIN && c2[i] != 0xff);
+					}
+				} else {
+					if(pass == 0) {
+						r1 = (v1 == LOSS && !ISSET(i,c1));
+						r2 = (v2 == LOSS && !ISSET(i,c2));
+					} else if(pass == 1) {
+						r1 = (v1 == WIN && !ISSET(i,c1));
+						r2 = (v2 == WIN && !ISSET(i,c2));
+					} else {
+						r1 = (v1 == DRAW && ISSET(i,c1));
+						r2 = (v2 == DRAW && ISSET(i,c2));
 					}
 				}
-	
+
 				if(!(r1 || r2))
 					continue;
+				icount++;
 
 				/*
 				set up position
@@ -492,7 +458,7 @@ void ENUMERATOR::backward_pass(
 				}
 
 				get_pos(i);
-				
+
 				if(first) {
 					searcher.set_pos(n_piece,player,piece,square);
 					first = false;
@@ -505,50 +471,80 @@ void ENUMERATOR::backward_pass(
 
 				/*white*/
 				if(r1) {
-					player = black;
-					searcher.player = black;
-					searcher.opponent = white;
-					
-					get_retro_score(ptab1,ptab2,c1,c2,v1,is_6man);
-					if(is_6man) 
-						c1[i >> 3] |= (1 << (i & 7));
-					else 
-						c1[i] = 0xff;
+					if(pass == 2) {
+						player = white;
+						searcher.player = white;
+						searcher.opponent = black;
+						int tscore = verify(ptab1,ptab2,c1,c2);
+						if(tscore != ILLEGAL)
+							SET(i,tscore,ptab1);
+						else
+							SET(i,ILLEGAL,ptab1);
+						CLRC(i,c1);
+					} else {
+						player = black;
+						searcher.player = black;
+						searcher.opponent = white;
+						get_retro_score(ptab1,ptab2,c1,c2,v1,compact_count);
+						if(compact_count) 
+							SETC(i,c1);
+						else 
+							c1[i] = 0xff;
+					}
 					more_to_do++;
 				}
-				
+
 				/*black*/
 				if(r2) {
-					player = white;
-					searcher.player = white;
-					searcher.opponent = black;		
-					
-					get_retro_score(ptab1,ptab2,c1,c2,v2,is_6man);
-					if(is_6man) 
-						c2[i >> 3] |= (1 << (i & 7));
-					else 
-						c2[i] = 0xff;
+					if(pass == 2) {
+						player = black;
+						searcher.player = black;
+						searcher.opponent = white;
+						int tscore = verify(ptab1,ptab2,c1,c2);
+						if(tscore != ILLEGAL)
+							SET(i,tscore,ptab2);
+						else
+							SET(i,ILLEGAL,ptab2);
+						CLRC(i,c2);
+					} else {
+						player = white;
+						searcher.player = white;
+						searcher.opponent = black;
+						get_retro_score(ptab1,ptab2,c1,c2,v2,compact_count);
+						if(compact_count) 
+							SETC(i,c2);
+						else 
+							c2[i] = 0xff;
+					}
 					more_to_do++;
 				}
 			}
-			if(!is_6man) break;
 		}
-
 		iteration++;
 		end = clock();
-		print("\r<-iteration %3d [%.2f sec]\t\t\n",
-			iteration,float(end - start) / CLOCKS_PER_SEC);
+		print("\r<-iteration %3d [%.2f sec] "FMT64"\t\t\n",
+			iteration,float(end - start) / CLOCKS_PER_SEC,icount);
 	} while (more_to_do);
 }
+
 /*
 * Generate
 */
+unsigned int ENUMERATOR::cumm_comp_time;
+unsigned int ENUMERATOR::cumm_gen_time;
+unsigned int ENUMERATOR::more_to_do;
+static size_t total_size  = 0;
+static size_t oneside_size = 0;
+static int mem_usage = -1;
+static int npawn_slices = -1;
+static int action = 0;
+
 void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 	register MYINT i;
-	UBMP8* ptab1,*ptab2,*c1,*c2;
+	UBMP8 *ptab1=0,*ptab2=0,*c1=0,*c2=0;
 	MYINT sz1,sz2,esize = penum->size;
 	int n_slices,v;
-
+	
 	/*generate*/
 	UBMP32 counts[2][4];
 	for(i = 0;i < 4;i++) {
@@ -557,13 +553,17 @@ void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 
 	/*pawn-sliced size*/
 	n_slices = 1;
-	if(penum->n_pawn)
-		n_slices = 4;
+	if(penum->n_pawn) {
+		if(penum->n_piece > 5) n_slices = 4;
+		if(npawn_slices != -1) n_slices = npawn_slices;
+	}
 	esize /= n_slices;
-
+	
 	/*calculate sizes*/
-	bool is_6man = (penum->n_piece > 5);
-	if(is_6man) 
+	bool compact_count = (penum->n_piece > 5);
+	if(mem_usage == 0) compact_count = true;
+	else if(mem_usage == 1) compact_count = false;
+	if(compact_count) 
 		sz1 = (esize / 8);
 	else 
 		sz1 = (esize);
@@ -571,12 +571,12 @@ void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 
 	/*Reserve memory*/
 	print("Allocating %d MB\n",
-		(2 * (sz1/1024 + sz2/1024)) / (1024));
+		int(2 * (sz1/1024 + sz2/1024)) / (1024));
 
-	c1 = (UBMP8*)malloc((size_t)sz1);
-	c2 = (UBMP8*)malloc((size_t)sz1);
-	ptab1 = (UBMP8*)malloc((size_t)sz2);
-	ptab2 = (UBMP8*)malloc((size_t)sz2);
+	aligned_reserve<UBMP8>(c1,sz1);
+	aligned_reserve<UBMP8>(c2,sz1);
+	aligned_reserve<UBMP8>(ptab1,sz2);
+	aligned_reserve<UBMP8>(ptab2,sz2);
 
 	if(!c1 || !c2 || !ptab1 || !ptab2) {
 		print("Memory allocation failed\n");
@@ -598,7 +598,7 @@ void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 			c2[i] = 0;
 		}
 		for(i = 0;i < esize;i++) {
-			if(is_6man) {
+			if(compact_count) {
 				SET(i,ILLEGAL,ptab1);
 				SET(i,ILLEGAL,ptab2);
 			} else {
@@ -621,23 +621,21 @@ void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 			print("Thread %d/%d: start "FMT64" end "FMT64"\n",
 				threadId + 1,nThreads,start,end);
 
-			e.initial_pass(ptab1,ptab2,c1,c2,start,end,is_6man);
+			e.initial_pass(ptab1,ptab2,c1,c2,start,end,compact_count);
+			e.backward_pass(ptab1,ptab2,c1,c2,start,end,compact_count);
 		}
 
-		/*passes*/
-		penum->backward_pass(ptab1,ptab2,c1,c2,0,esize,is_6man);
-
+		/*count*/
 		bool first = true;
 		for(i = 0;i < esize;i++) {
-
 			GET(i,v,ptab1);
-			if((is_6man && v == ILLEGAL && !penum->is_illegal(i,white,first)) ||
-				(!is_6man && v == LOSS && c1[i] > 0 && c1[i] != 0xff))
+			if((compact_count && v == ILLEGAL && !ISSET(i,c1)) ||
+				(!compact_count && v == LOSS && c1[i] > 0 && c1[i] != 0xff))
 				SET(i,DRAW,ptab1);
 
 			GET(i,v,ptab2);
-			if((is_6man && v == ILLEGAL && !penum->is_illegal(i,black,first)) ||
-				(!is_6man && v == LOSS && c2[i] > 0 && c2[i] != 0xff))
+			if((compact_count && v == ILLEGAL && !ISSET(i,c2)) ||
+				(!compact_count && v == LOSS && c2[i] > 0 && c2[i] != 0xff))
 				SET(i,DRAW,ptab2);
 
 			GET(i,v,ptab1);
@@ -647,7 +645,6 @@ void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 				else v = DRAW;
 				SET(i,v,ptab1);
 			}
-
 			GET(i,v,ptab2); 
 			counts[1][v + 2]++;
 			if(v == ILLEGAL) {
@@ -671,27 +668,25 @@ void generate_slice(ENUMERATOR* penum,FILE* fw,FILE *fb) {
 		print("\n");
 
 		/*save to file*/
-		for(i = 0;i < sz2;i++)
-			fprintf(fw,"%c",ptab1[i]);
-		for(i = 0;i < sz2;i++)
-			fprintf(fb,"%c",ptab2[i]);
+		fwrite(ptab1,sz2,1,fw);
+		fwrite(ptab2,sz2,1,fb);
 	}
-
+	
 	/*delete*/
-	free(c1);
-	free(c2);
-	free(ptab1);
-	free(ptab2);	
+	aligned_free(c1);
+	aligned_free(c2);
+	aligned_free(ptab1);
+	aligned_free(ptab2);
 	/*end*/
 }
-void generate(ENUMERATOR* penum) {
-	/*header*/
-	penum->print_header();
 
+void generate(ENUMERATOR* penum) {
 	/*open files*/
 	FILE* fw,*fb;
 	char name[256];
-	int len;
+	size_t len,sz1,sz2;
+	bool exists = true;
+
 	len = strlen(penum->name);
 
 	penum->name[len - 1] = 'w';
@@ -699,24 +694,67 @@ void generate(ENUMERATOR* penum) {
 	strcat(name,".cmp");
 	fw = fopen(name,"rb");
 	if(fw) {
-		print("Skipped %s\n",penum->name);
+		fseek(fw, 0, SEEK_END);
+		sz1 = ftell(fw);
+		print("Skipped %s: file size %.2f KB\n",
+			penum->name,sz1 / (1024.0));
 		fclose(fw);
-		return;
+	} else {
+		if(action == 0) {
+			if(!(fw = fopen(penum->name,"rb")))
+				fw = fopen(penum->name,"wb");
+			else {
+				fclose(fw);
+				fw = 0;
+			}
+		}
+		exists = false;
 	}
-	fw = fopen(penum->name,"wb");
 
 	penum->name[len - 1] = 'b';
 	strcpy(name,penum->name);
 	strcat(name,".cmp");
 	fb = fopen(name,"rb");
 	if(fb) {
-		print("Skipped %s\n",penum->name);
+		fseek(fb, 0, SEEK_END);
+		sz2 = ftell(fb);
+		print("Skipped %s: file size %.2f KB\n",
+			penum->name,sz2 / (1024.0));
 		fclose(fb);
+	} else {
+		if(action == 0) {
+			if(!(fb = fopen(penum->name,"rb")))
+				fb = fopen(penum->name,"wb");
+			else {
+				fclose(fb);
+				fb = 0;
+			}
+		}
+		exists = false;
+	}
+
+	if(exists) {
+		total_size += sz1 + sz2;
+		if(sz1 < sz2) oneside_size += sz1;
+		else oneside_size += sz2;
+
+		print("Total %.2f MB, Oneside %.2f MB\n",
+			total_size / (1024.0 * 1024.0), 
+			oneside_size / (1024.0 * 1024.0));
+
 		return;
 	}
-	fb = fopen(penum->name,"wb");
+
+	if(action)
+		return;
+
+	if(!fw || !fb) {
+		print("Skipped %s : Uncompressed file exists.\n",penum->name);
+		return;
+	}
 
 	/*generate*/
+	penum->print_header();
 	clock_t start,end;
 	start = clock();
 	generate_slice(penum,fw,fb);
@@ -749,49 +787,38 @@ void generate(ENUMERATOR* penum) {
 	/*open egbb*/
 	penum->piece[penum->n_piece] = 0;
 	open_egbb(penum->piece);
+	/*end*/
 }
 /*
 Compressor
 */
 void ENUMERATOR::compress() {
-
 	char command[256];
-	char out_name[15];
-	int len = strlen(name);
-
+	char out_name[128];
+	size_t len = strlen(name);
 	strcpy(out_name,name);
 	strcat(out_name,".cmp");
-
+	strcpy(command,SEARCHER::egbb_path);
 #ifdef _MSC_VER
-	strcpy(command,"");
-	sprintf(command,"egbb\\compress -c -i %s -o %s",name,out_name);
-	system(command);
-#else
-	strcpy(command,"");
-	sprintf(command,"./egbb/compress -c -i %s -o %s",name,out_name);
-	system(command);
+	command[strlen(command)-1]='\\';
 #endif
-	remove(name);
+	sprintf(command,"%scompress -c -i %s -o %s",
+		command,name,out_name);
+	if(system(command)) {
+		print("Compressor not found\n");
+	} else {
+		remove(name);
+	}
 }
 /*
 * print to logfile / stdout
 */
-static FILE* log_file = 0;
-
 void print(const char* format,...) {
-
 	va_list ap;
 	va_start(ap, format);
 	vprintf(format, ap);
 	va_end(ap);
 	fflush(stdout);
-
-	if(log_file) {
-		va_start(ap, format);
-		vfprintf(log_file, format, ap);
-		va_end(ap);
-		fflush(log_file);
-	}
 }
 
 /*
@@ -813,70 +840,83 @@ void ENUMERATOR::print_header() {
 /*
 Main
 */
-unsigned int ENUMERATOR::cumm_comp_time;
-unsigned int ENUMERATOR::cumm_gen_time;
-
 void print_help() {
 	printf("Usage: generate [options] -i <input> -o <output>\n\t"
 		"-n -- number of pieces including pawns\n\t"
 		"-p -- number of pawns\n\t"
 		"-i -- index of a single bitbase to generate with in the selected set\n\t"
 		"-h -- show this help message\n\t"
-		"-t -- number of threads to use\n"
+		"-t -- number of threads to use\n\t"
+		"-pslice -- number of pawn slices 1,2,4\n\t"
+		"-mem -- memory usage 0-low 1-high\n\t"
+		"-ecache -- egbb cache size in MB (default 32)\n\t"
+		"-epath -- egbb path (default egbb/)\n\t"
+		"-action -- Actions to do 0-generate 1-show sizes 2-move smaller file\n\n"
 		);
 }
+int SEARCHER::egbb_cache_size;
+char SEARCHER::egbb_path[128];
+
 int main(int argc,char* argv[]) {
 	SEARCHER searcher;
 	ENUMERATOR enumerator,*penum = &enumerator; 
 	int piece[MAX_PIECES];
-
-	int npieces = 0,npawns = 0,bindex = -1,nenums = 0,nThreads = 1;
+	
+	/*options*/
+	int npieces = 0,npawns = -1,bindex = -1,nenums = 0,nThreads = 1;
+	SEARCHER::egbb_cache_size = 32;
+	strcpy(SEARCHER::egbb_path,"egbb/");
 	for(int i = 0; i < argc; i++) {
 		if(!strcmp(argv[i],"-n")) {
-			npieces = atoi(argv[i+1]);
+			npieces = atoi(argv[++i]);
 		} else if(!strcmp(argv[i],"-p")) {
-			npawns = atoi(argv[i+1]);
+			npawns = atoi(argv[++i]);
 		} else if(!strcmp(argv[i],"-i")) {
-			bindex = atoi(argv[i+1]);
+			bindex = atoi(argv[++i]);
 		} else if(!strcmp(argv[i],"-t")) {
-			nThreads = atoi(argv[i+1]);
+			nThreads = atoi(argv[++i]);
+		} else if(!strcmp(argv[i],"-mem")) {
+			mem_usage = atoi(argv[++i]);
+		} else if(!strcmp(argv[i],"-pslice")) {
+			npawn_slices = atoi(argv[++i]);
+		} else if(!strcmp(argv[i],"-ecache")) {
+			SEARCHER::egbb_cache_size = atoi(argv[++i]);
+		} else if(!strcmp(argv[i],"-epath")) {
+			strcpy(SEARCHER::egbb_path,argv[++i]);
+		} else if(!strcmp(argv[i],"-action")) {
+			action = atoi(argv[++i]);
 		} else if(!strcmp(argv[i],"-h")) {
 			print_help();
 			return 0;
 		}
 	}
+	SEARCHER::egbb_cache_size *= (1024 * 1024);
 
 	/*load egbbs*/
-	int egbb_cache_size = (32 * 1024 * 1024);
-#ifdef _MSC_VER
-	SEARCHER::egbb_is_loaded = LoadEgbbLibrary("egbb/",egbb_cache_size);
-#else
-	SEARCHER::egbb_is_loaded = LoadEgbbLibrary("./egbb/",egbb_cache_size);
-#endif
-
-	log_file = fopen("log.txt" ,"w");
+	SEARCHER::egbb_is_loaded = LoadEgbbLibrary(
+		SEARCHER::egbb_path,SEARCHER::egbb_cache_size);
 	init_indices();
+
+	/*reset time*/
 	ENUMERATOR::cumm_gen_time = 0;
 	ENUMERATOR::cumm_comp_time = 0;
 	omp_set_num_threads(nThreads);
 
 	/*ADD files*/
-#define ADD() {										\
+#define ADD() {									    \
 	penum->add(white,piece);						\
-	if(npieces != 0 && penum->n_piece > npieces) {	\
+	if(npieces != 0 && penum->n_piece != npieces) {	\
 		penum->clear();								\
 		continue;									\
 	}												\
-	if(penum->n_piece == npieces) {					\
-		if(penum->n_pawn != npawns) {				\
-			penum->clear();							\
-			continue;								\
-		}											\
-		nenums++;									\
-		if(bindex > 0 && bindex + 1 != nenums) {	\
-			penum->clear();							\
-			continue;								\
-		}											\
+	if(npawns != -1 && penum->n_pawn != npawns) {	\
+		penum->clear();								\
+		continue;									\
+	}												\
+	nenums++;										\
+	if(bindex != -1 && nenums - 1 != bindex) {		\
+		penum->clear();								\
+		continue;									\
 	}												\
 	penum->sort(1);									\
 	penum->init();									\
@@ -1005,8 +1045,6 @@ int main(int argc,char* argv[]) {
 		}
 	}
 #undef ADD
-	/*close log file*/
-	fclose(log_file);
 
 	return 0;
 }

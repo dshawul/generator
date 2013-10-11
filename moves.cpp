@@ -199,7 +199,7 @@ void SEARCHER::gen_noncaps() {
 		}
 	}
 	/*count*/
-	pstack->count += (pmove - spmove);
+	pstack->count += int(pmove - spmove);
 }
 /*
 generate all
@@ -658,7 +658,7 @@ void SEARCHER::gen_retro() {
 		}
 	}
 	/*count*/
-	pstack->count += (pmove - spmove);
+	pstack->count += int(pmove - spmove);
 }
 /*constructor*/
 SEARCHER::SEARCHER() : board(&temp_board[48])
@@ -896,7 +896,7 @@ void SEARCHER::print_board() {
 		print("\n");
 	}
 #ifdef	_DEBUG
-	print("play = %d opp = %d ep = %d cas = %d fif = %d\n",player,opponent,epsquare,castle,fifty);
+	print("play = %d opp = %d ep = %d\n",player,opponent,epsquare);
     PLIST current;
 	char  str[4];
 	for(i = wking;i <= bpawn;i++) {
