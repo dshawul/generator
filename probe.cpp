@@ -80,7 +80,7 @@ Change interanal scorpio board representaion to [A1 = 0 ... H8 = 63]
 board representation and then probe bitbase.
 */
 
-int SEARCHER::probe_bitbases(int& score) {
+int SEARCHER::probe_bitbases(int* score,bool both) {
 	
 	register PLIST current;
 	int piece[MAX_PIECES],square[MAX_PIECES],count = 0;
@@ -109,7 +109,9 @@ int SEARCHER::probe_bitbases(int& score) {
 	piece[count] = _EMPTY;
 	square[count] = 0;
 
-	score = probe_egbb(player,piece,square);
+	score[0] = probe_egbb(player,piece,square);
+	if(both)
+		score[1] = probe_egbb(opponent,piece,square);
 	
-    return (score != _NOTFOUND);
+    return (score[0] != _NOTFOUND);
 }

@@ -12,6 +12,10 @@
 #include <cstring>
 #include <cctype>
 #include <cstdarg>
+#include <ctime>
+
+//#define PARALLEL
+#define OMP
 
 #include "my_types.h"
 
@@ -226,7 +230,7 @@ typedef struct SEARCHER{
 	/*
 	Bitbases
 	*/
-	int probe_bitbases(int&);
+	int probe_bitbases(int*,bool=false);
 	static int egbb_is_loaded;
 	static int egbb_load_type;
 	static int egbb_cache_size;
@@ -366,6 +370,7 @@ void SEARCHER::undo_move(const int move) {
 Enumerator
 */
 #define MAX_PIECES  8
+#define MAX_BANKS  64
 
 struct ENUMERATOR {
 	int piece[MAX_PIECES];
@@ -387,6 +392,8 @@ struct ENUMERATOR {
 	static unsigned int cumm_gen_time;
 	static unsigned int cumm_comp_time;
 	static unsigned int more_to_do;
+	static unsigned int bank_size;
+	static LOCK locks[MAX_BANKS];
 
 	ENUMERATOR() {
 		n_piece = 0;
@@ -439,13 +446,20 @@ struct ENUMERATOR {
 	void print_header();
 	void sort(int);
 	void compress();
+	void decompress();
+	void read_slice(UBMP8*,const MYINT&,int n_slices);
+	template<bool hasPawn>
+	bool get_pos_(MYINT);
 	bool get_pos(MYINT);
+	template<bool hasPawn>
+	bool get_index_(MYINT&,bool = false);
 	bool get_index(MYINT&,bool = false);
 	int  verify(UBMP8*,UBMP8*,UBMP8*,UBMP8*);
 	int  get_init_score(UBMP8&,int,int,bool is_6man);
     void get_retro_score(UBMP8*,UBMP8*,UBMP8*,UBMP8*,int,bool is_6man);
 	void initial_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
 	void backward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
+	void regenerate(UBMP8*,UBMP8*,const MYINT&,const MYINT&);
 };
 /*
 end
