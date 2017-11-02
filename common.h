@@ -23,33 +23,33 @@
 
 /*types*/
 enum COLORS {
-	white,black,neutral
+    white,black,neutral
 };
 enum CHESSMEN {
-	king = 1,queen,rook,bishop,knight,pawn
+    king = 1,queen,rook,bishop,knight,pawn
 };
 enum OCCUPANCY {
-	empty,wking,wqueen,wrook,wbishop,wknight,wpawn,
+    empty,wking,wqueen,wrook,wbishop,wknight,wpawn,
           bking,bqueen,brook,bbishop,bknight,bpawn,elephant
 };
 enum RANKS {
-	RANK1,RANK2,RANK3,RANK4,RANK5,RANK6,RANK7,RANK8
+    RANK1,RANK2,RANK3,RANK4,RANK5,RANK6,RANK7,RANK8
 };
 enum FILES {
-	FILEA,FILEB,FILEC,FILED,FILEE,FILEF,FILEG,FILEH
+    FILEA,FILEB,FILEC,FILED,FILEE,FILEF,FILEG,FILEH
 };
 enum SQUARES {
-	A1 = 0,B1,C1,D1,E1,F1,G1,H1,
-	A2 = 16,B2,C2,D2,E2,F2,G2,H2,
-	A3 = 32,B3,C3,D3,E3,F3,G3,H3,
-	A4 = 48,B4,C4,D4,E4,F4,G4,H4,
-	A5 = 64,B5,C5,D5,E5,F5,G5,H5,
-	A6 = 80,B6,C6,D6,E6,F6,G6,H6,
-	A7 = 96,B7,C7,D7,E7,F7,G7,H7,
-	A8 = 112,B8,C8,D8,E8,F8,G8,H8
+    A1 = 0,B1,C1,D1,E1,F1,G1,H1,
+    A2 = 16,B2,C2,D2,E2,F2,G2,H2,
+    A3 = 32,B3,C3,D3,E3,F3,G3,H3,
+    A4 = 48,B4,C4,D4,E4,F4,G4,H4,
+    A5 = 64,B5,C5,D5,E5,F5,G5,H5,
+    A6 = 80,B6,C6,D6,E6,F6,G6,H6,
+    A7 = 96,B7,C7,D7,E7,F7,G7,H7,
+    A8 = 112,B8,C8,D8,E8,F8,G8,H8
 };
 enum RESULTS {
-	ILLEGAL = -2,LOSS = -1,DRAW = 0,WIN = 1
+    ILLEGAL = -2,LOSS = -1,DRAW = 0,WIN = 1
 };
 #define RR    0x01
 #define LL   -0x01
@@ -183,91 +183,91 @@ extern const BMP8* const _sqatt_step;
 Type definitions
 */
 typedef struct LIST{
-	int   sq;
-	LIST* prev;
-	LIST* next;
+    int   sq;
+    LIST* prev;
+    LIST* next;
 }*PLIST;
 
 typedef struct STACK{
-	int move_st[MAX_MOVES];
-	int count;
-	int legal_moves;
-	int epsquare;
+    int move_st[MAX_MOVES];
+    int count;
+    int legal_moves;
+    int epsquare;
 }*PSTACK;
 
 /*
 searcher
 */
 typedef struct SEARCHER{
-	int player;
-	int opponent;
-	int epsquare;
-	int ply;
-	int temp_board[224];
-	int* const board;
-	PLIST list[128];
-	PLIST plist[15];
-	PSTACK pstack;
-	STACK stack[MAX_PLY];
+    int player;
+    int opponent;
+    int epsquare;
+    int ply;
+    int temp_board[224];
+    int* const board;
+    PLIST list[128];
+    PLIST plist[15];
+    PSTACK pstack;
+    STACK stack[MAX_PLY];
 
-	SEARCHER();
-	int   blocked(int,int) const;
-	int   attacks(int,int) const;
-	void  pcAdd(int,int);
-	void  pcRemove(int,int);
-	void  pcSwap(int,int);
-	template<bool isNc>
-	void  do_move(const int);
-	template<bool isNc>
+    SEARCHER();
+    int   blocked(int,int) const;
+    int   attacks(int,int) const;
+    void  pcAdd(int,int);
+    void  pcRemove(int,int);
+    void  pcSwap(int,int);
+    template<bool isNc>
+    void  do_move(const int);
+    template<bool isNc>
     void  undo_move(const int);
-	void  gen_all();
-	void  gen_noncaps();
-	void  gen_retro();
-	void  init_data();
-	void  set_pos(int count,int side,
-		int* piece,int* square);
-	void  print_board();
-	/*
-	Bitbases
-	*/
-	int probe_bitbases(int*,bool=false);
-	static int egbb_is_loaded;
-	static int egbb_load_type;
-	static int egbb_cache_size;
-	static char egbb_path[128];
+    void  gen_all();
+    void  gen_noncaps();
+    void  gen_retro();
+    void  init_data();
+    void  set_pos(int count,int side,
+        int* piece,int* square);
+    void  print_board();
+    /*
+    Bitbases
+    */
+    int probe_bitbases(int*,bool=false);
+    static int egbb_is_loaded;
+    static int egbb_load_type;
+    static int egbb_cache_size;
+    static char egbb_path[128];
 } *PSEARCHER;
 
 /*
 inline piece list functions
 */
 FORCEINLINE void SEARCHER::pcAdd(int pic,int sq) {
-	PLIST* pHead;
-	PLIST pPc;
-	pHead = &plist[pic];
-	pPc = list[sq];
-	if(!(*pHead)) {
-		(*pHead) = pPc;
-		(*pHead)->next = 0;
-		(*pHead)->prev = 0;
-	} else {
-		pPc->next = (*pHead)->next;
-		if((*pHead)->next) (*pHead)->next->prev = pPc;
-		(*pHead)->next = pPc;
-		pPc->prev = (*pHead);
+    PLIST* pHead;
+    PLIST pPc;
+    pHead = &plist[pic];
+    pPc = list[sq];
+    if(!(*pHead)) {
+        (*pHead) = pPc;
+        (*pHead)->next = 0;
+        (*pHead)->prev = 0;
+    } else {
+        pPc->next = (*pHead)->next;
+        if((*pHead)->next) (*pHead)->next->prev = pPc;
+        (*pHead)->next = pPc;
+        pPc->prev = (*pHead);
     }
 }
 FORCEINLINE void SEARCHER::pcRemove(int pic,int sq) {
-	PLIST* pHead;
-	PLIST pPc;
-	pHead = &plist[pic];
-	pPc = list[sq];
-	if(pPc->next) pPc->next->prev = pPc->prev;
-	if(pPc->prev) pPc->prev->next = pPc->next;
+    PLIST* pHead;
+    PLIST pPc;
+    pHead = &plist[pic];
+    pPc = list[sq];
+    if(pPc->next) pPc->next->prev = pPc->prev;
+    if(pPc->prev) pPc->prev->next = pPc->next;
     if((*pHead) == pPc) (*pHead) = (*pHead)->next;
 }
 FORCEINLINE void SEARCHER::pcSwap(int from,int to) {
-	PLIST pPc;
-	PLIST& pTo = list[to];
+    PLIST pPc;
+    PLIST& pTo = list[to];
     PLIST& pFrom = list[from];
     pPc = pTo;
     pTo = pFrom;
@@ -280,90 +280,90 @@ MOVES
 */
 template <bool isNc>
 void SEARCHER::do_move(const int move) {
-	int from = m_from(move),to = m_to(move);
-	if(isNc) {
-		board[to] = board[from];
-		board[from] = empty;
-		pcSwap(from,to);
-	} else {
-		int sq;
-		pstack->epsquare = epsquare;
+    int from = m_from(move),to = m_to(move);
+    if(isNc) {
+        board[to] = board[from];
+        board[from] = empty;
+        pcSwap(from,to);
+    } else {
+        int sq;
+        pstack->epsquare = epsquare;
 
-		/*remove captured piece*/
-		if(m_capture(move)) {
-			if(is_ep(move))
-				sq = to - pawn_dir[player];
-			else
-				sq = to;
-			pcRemove(m_capture(move),sq);
-			board[sq] = empty;
-		}
+        /*remove captured piece*/
+        if(m_capture(move)) {
+            if(is_ep(move))
+                sq = to - pawn_dir[player];
+            else
+                sq = to;
+            pcRemove(m_capture(move),sq);
+            board[sq] = empty;
+        }
 
-		/*move piece*/
-		if(m_promote(move)) {
-			board[to] = m_promote(move);
-			board[from] = empty;
-			pcAdd(m_promote(move),to);
-			pcRemove(COMBINE(player,pawn),from);
-		} else {
-			board[to] = board[from];
-			board[from] = empty;
-			pcSwap(from,to);
-		}
+        /*move piece*/
+        if(m_promote(move)) {
+            board[to] = m_promote(move);
+            board[from] = empty;
+            pcAdd(m_promote(move),to);
+            pcRemove(COMBINE(player,pawn),from);
+        } else {
+            board[to] = board[from];
+            board[from] = empty;
+            pcSwap(from,to);
+        }
 
-		/*update current state*/
-		epsquare = 0;
-		if(PIECE(m_piece(move)) == pawn) {
-			if(to - from == (2 * pawn_dir[player])) {
-				epsquare = ((to + from) >> 1);
-			}
-		}
-	}
-	/*invert*/
-	player = invert(player);
-	opponent = invert(opponent);
-	ply++;
-	pstack++;
+        /*update current state*/
+        epsquare = 0;
+        if(PIECE(m_piece(move)) == pawn) {
+            if(to - from == (2 * pawn_dir[player])) {
+                epsquare = ((to + from) >> 1);
+            }
+        }
+    }
+    /*invert*/
+    player = invert(player);
+    opponent = invert(opponent);
+    ply++;
+    pstack++;
 }
 
 template<bool isNc>
 void SEARCHER::undo_move(const int move) {
-	int to = m_to(move),from = m_from(move);
+    int to = m_to(move),from = m_from(move);
 
-	pstack--;
-	ply--;
-	player = invert(player);
-	opponent = invert(opponent);
+    pstack--;
+    ply--;
+    player = invert(player);
+    opponent = invert(opponent);
 
-	if(isNc) {
-		board[from] = board[to];
-		board[to] = empty;
-		pcSwap(to,from);
-	} else {
-		int sq;
-		epsquare = pstack->epsquare;
+    if(isNc) {
+        board[from] = board[to];
+        board[to] = empty;
+        pcSwap(to,from);
+    } else {
+        int sq;
+        epsquare = pstack->epsquare;
 
-		/*unmove piece*/
-		if(m_promote(move)) {
-			board[from] = COMBINE(player,pawn);
-			board[to] = empty;
-			pcAdd(COMBINE(player,pawn),from);
-			pcRemove(m_promote(move),to);
-		} else {
-			board[from] = board[to];
-			board[to] = empty;
-			pcSwap(to,from);
-		}
-		/*insert captured piece*/
-		if(m_capture(move)) {
-			if(is_ep(move))
-				sq = to - pawn_dir[player];
-			else
-				sq = to;
-			board[sq] = m_capture(move);
-			pcAdd(m_capture(move),sq);
-		}
-	}
+        /*unmove piece*/
+        if(m_promote(move)) {
+            board[from] = COMBINE(player,pawn);
+            board[to] = empty;
+            pcAdd(COMBINE(player,pawn),from);
+            pcRemove(m_promote(move),to);
+        } else {
+            board[from] = board[to];
+            board[to] = empty;
+            pcSwap(to,from);
+        }
+        /*insert captured piece*/
+        if(m_capture(move)) {
+            if(is_ep(move))
+                sq = to - pawn_dir[player];
+            else
+                sq = to;
+            board[sq] = m_capture(move);
+            pcAdd(m_capture(move),sq);
+        }
+    }
 }
 
 /*
@@ -373,93 +373,93 @@ Enumerator
 #define MAX_BANKS  64
 
 struct ENUMERATOR {
-	int piece[MAX_PIECES];
-	int square[MAX_PIECES];
-	int res1[MAX_PIECES];
-	int res2[MAX_PIECES];
-	MYINT index[MAX_PIECES];
-	MYINT divisor[MAX_PIECES];
-	MYINT size;
-	int n_piece;
-	int n_pawn;
-	int player;
-	int king_loc;
-	int pawn_loc;
-	int slice_i;
-	MYINT slice_size;
-	char name[128];
-	SEARCHER searcher;
-	static unsigned int cumm_gen_time;
-	static unsigned int cumm_comp_time;
-	static unsigned int more_to_do;
-	static unsigned int bank_size;
-	static LOCK locks[MAX_BANKS];
+    int piece[MAX_PIECES];
+    int square[MAX_PIECES];
+    int res1[MAX_PIECES];
+    int res2[MAX_PIECES];
+    MYINT index[MAX_PIECES];
+    MYINT divisor[MAX_PIECES];
+    MYINT size;
+    int n_piece;
+    int n_pawn;
+    int player;
+    int king_loc;
+    int pawn_loc;
+    int slice_i;
+    MYINT slice_size;
+    char name[128];
+    SEARCHER searcher;
+    static unsigned int cumm_gen_time;
+    static unsigned int cumm_comp_time;
+    static unsigned int more_to_do;
+    static unsigned int bank_size;
+    static LOCK locks[MAX_BANKS];
 
-	ENUMERATOR() {
-		n_piece = 0;
-		n_pawn = 0;
-		size = 1;
-		player = white;
-		slice_i = 0;
-		slice_size = 1;
-	}
-	void copy(const ENUMERATOR& src) {
-		n_piece = src.n_piece;
-		n_pawn = src.n_pawn;
-		player = src.player;
-		king_loc = src.king_loc;
-		pawn_loc = src.pawn_loc;
-		size = src.size;
-		slice_i = src.slice_i;
-		slice_size = src.slice_size;
-		memcpy(piece,src.piece,sizeof(piece));
-		memcpy(square,src.square,sizeof(square));
-		memcpy(res1,src.res1,sizeof(res1));
-		memcpy(res2,src.res2,sizeof(res2));
-		memcpy(index,src.index,sizeof(index));
-		memcpy(divisor,src.divisor,sizeof(divisor));
-	}
-	void add(int pc) {
+    ENUMERATOR() {
+        n_piece = 0;
+        n_pawn = 0;
+        size = 1;
+        player = white;
+        slice_i = 0;
+        slice_size = 1;
+    }
+    void copy(const ENUMERATOR& src) {
+        n_piece = src.n_piece;
+        n_pawn = src.n_pawn;
+        player = src.player;
+        king_loc = src.king_loc;
+        pawn_loc = src.pawn_loc;
+        size = src.size;
+        slice_i = src.slice_i;
+        slice_size = src.slice_size;
+        memcpy(piece,src.piece,sizeof(piece));
+        memcpy(square,src.square,sizeof(square));
+        memcpy(res1,src.res1,sizeof(res1));
+        memcpy(res2,src.res2,sizeof(res2));
+        memcpy(index,src.index,sizeof(index));
+        memcpy(divisor,src.divisor,sizeof(divisor));
+    }
+    void add(int pc) {
         piece[n_piece++] = pc;
-		if(PIECE(pc) == pawn)
-			n_pawn++;
-	}
-	void add(int pc,int sq) {
+        if(PIECE(pc) == pawn)
+            n_pawn++;
+    }
+    void add(int pc,int sq) {
         piece[n_piece] = pc;
         square[n_piece] = sq;
-		n_piece++;
-		if(PIECE(pc) == pawn)
-			n_pawn++;
-	}
-	void add(int side,int* piece) {
-		player = side;
-		for(int i = 0;i < MAX_PIECES && piece[i];i++)
-			add(piece[i]);
-	}
-	void clear() {
-		n_piece = 0;
-		n_pawn = 0;
-		size = 1;
-		player = white;
-	}
-	void init();
-	void print_header();
-	void sort(int);
-	void compress();
-	void decompress();
-	void read_slice(UBMP8*,const MYINT&,int n_slices);
-	template<bool hasPawn>
-	bool get_pos_(MYINT);
-	bool get_pos(MYINT);
-	template<bool hasPawn>
-	bool get_index_(MYINT&,bool = false);
-	bool get_index(MYINT&,bool = false);
-	int  verify(UBMP8*,UBMP8*,UBMP8*,UBMP8*);
-	int  get_init_score(UBMP8&,int,int,bool is_6man);
+        n_piece++;
+        if(PIECE(pc) == pawn)
+            n_pawn++;
+    }
+    void add(int side,int* piece) {
+        player = side;
+        for(int i = 0;i < MAX_PIECES && piece[i];i++)
+            add(piece[i]);
+    }
+    void clear() {
+        n_piece = 0;
+        n_pawn = 0;
+        size = 1;
+        player = white;
+    }
+    void init();
+    void print_header();
+    void sort(int);
+    void compress();
+    void decompress();
+    void read_slice(UBMP8*,const MYINT&,int n_slices);
+    template<bool hasPawn>
+    bool get_pos_(MYINT);
+    bool get_pos(MYINT);
+    template<bool hasPawn>
+    bool get_index_(MYINT&,bool = false);
+    bool get_index(MYINT&,bool = false);
+    int  verify(UBMP8*,UBMP8*,UBMP8*,UBMP8*);
+    int  get_init_score(UBMP8&,int,int,bool is_6man);
     void get_retro_score(UBMP8*,UBMP8*,UBMP8*,UBMP8*,int,bool is_6man);
-	void initial_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
-	void backward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
-	void regenerate(UBMP8*,UBMP8*,const MYINT&,const MYINT&);
+    void initial_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
+    void backward_pass(UBMP8*,UBMP8*,UBMP8*,UBMP8*,const MYINT&,const MYINT&,bool is_6man);
+    void regenerate(UBMP8*,UBMP8*,const MYINT&,const MYINT&);
 };
 /*
 end

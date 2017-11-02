@@ -1,14 +1,21 @@
 #include "common.h"
 
+#ifndef _WIN32   // Linux - Unix
+#    define dlsym __shut_up
+#    include <dlfcn.h>
+#    undef dlsym
+extern "C" void *(*dlsym(void *handle, const char *symbol))();
+#endif
+
 enum egbb_colors {
-	_WHITE,_BLACK
+    _WHITE,_BLACK
 };
 enum egbb_occupancy {
-	_EMPTY,_WKING,_WQUEEN,_WROOK,_WBISHOP,_WKNIGHT,_WPAWN,
+    _EMPTY,_WKING,_WQUEEN,_WROOK,_WBISHOP,_WKNIGHT,_WPAWN,
     _BKING,_BQUEEN,_BROOK,_BBISHOP,_BKNIGHT,_BPAWN
 };
 enum egbb_load_types {
-	LOAD_NONE,LOAD_4MEN,SMART_LOAD,LOAD_5MEN
+    LOAD_NONE,LOAD_4MEN,SMART_LOAD,LOAD_5MEN
 };
 
 #define _NOTFOUND 99999
@@ -26,53 +33,53 @@ Load the dll and get the address of the load and probe functions.
 */
 
 #ifdef _MSC_VER
-#	ifdef ARC_64BIT
-#		define EGBB_NAME "egbbdll64.dll"
-#	else
-#		define EGBB_NAME "egbbdll.dll"
-#	endif
+#   ifdef ARC_64BIT
+#       define EGBB_NAME "egbbdll64.dll"
+#   else
+#       define EGBB_NAME "egbbdll.dll"
+#   endif
 #else
-#	ifdef ARC_64BIT
-#		define EGBB_NAME "egbbso64.so"
-#	else
-#		define EGBB_NAME "egbbso.so"
-#	endif
+#   ifdef ARC_64BIT
+#       define EGBB_NAME "egbbso64.so"
+#   else
+#       define EGBB_NAME "egbbso.so"
+#   endif
 #endif
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 #    define HMODULE void*
 #    define LoadLibrary(x) dlopen(x,RTLD_LAZY)
 #    define GetProcAddress dlsym
 #endif
 
 int LoadEgbbLibrary(const char* main_path,int egbb_cache_size) {
-	HMODULE hmod;
-	PLOAD_EGBB load_egbb;
-	char path[256];
-	char terminator;
-	size_t plen = strlen(main_path);
-	strcpy(path,main_path);
-	if (plen) {
-		terminator = main_path[strlen(main_path)-1];
-		if (terminator != '/' && terminator != '\\') {
-			if (strchr(path, '\\') != NULL)
-				strcat(path, "\\");
-			else
-				strcat(path, "/");
-		}
-	}
-	strcat(path,EGBB_NAME);
+    HMODULE hmod;
+    PLOAD_EGBB load_egbb;
+    char path[256];
+    char terminator;
+    size_t plen = strlen(main_path);
+    strcpy(path,main_path);
+    if (plen) {
+        terminator = main_path[strlen(main_path)-1];
+        if (terminator != '/' && terminator != '\\') {
+            if (strchr(path, '\\') != NULL)
+                strcat(path, "\\");
+            else
+                strcat(path, "/");
+        }
+    }
+    strcat(path,EGBB_NAME);
 
-	if((hmod = LoadLibrary(path)) != 0) {
-		load_egbb = (PLOAD_EGBB) GetProcAddress(hmod,"load_egbb_xmen");
-     	probe_egbb = (PPROBE_EGBB) GetProcAddress(hmod,"probe_egbb_xmen");
-		open_egbb = (POPEN_EGBB)  GetProcAddress(hmod,"open_egbb");
+    if((hmod = LoadLibrary(path)) != 0) {
+        load_egbb = (PLOAD_EGBB) GetProcAddress(hmod,"load_egbb_xmen");
+        probe_egbb = (PPROBE_EGBB) GetProcAddress(hmod,"probe_egbb_xmen");
+        open_egbb = (POPEN_EGBB)  GetProcAddress(hmod,"open_egbb");
         load_egbb(main_path,egbb_cache_size,SEARCHER::egbb_load_type);
-		return true;
-	} else {
-		printf("EgbbProbe not Loaded!\n");
-		return false;
-	}
+        return true;
+    } else {
+        printf("EgbbProbe not Loaded!\n");
+        return false;
+    }
 }
 /*
 Probe:
@@ -81,37 +88,37 @@ board representation and then probe bitbase.
 */
 
 int SEARCHER::probe_bitbases(int* score,bool both) {
-	
-	register PLIST current;
-	int piece[MAX_PIECES],square[MAX_PIECES],count = 0;
+    
+    register PLIST current;
+    int piece[MAX_PIECES],square[MAX_PIECES],count = 0;
 
-#define ADD_PIECE(list,type) {					\
-	   current = list;							\
-	   while(current) {							\
-	      piece[count] = type;					\
-		  square[count] = SQ8864(current->sq);	\
-		  current = current->next;				\
-		  count++;								\
-	   }										\
-	};
-	ADD_PIECE(plist[wking],_WKING);
-	ADD_PIECE(plist[bking],_BKING);
-	ADD_PIECE(plist[wqueen],_WQUEEN);
-	ADD_PIECE(plist[bqueen],_BQUEEN);
-	ADD_PIECE(plist[wrook],_WROOK);
-	ADD_PIECE(plist[brook],_BROOK);
-	ADD_PIECE(plist[wbishop],_WBISHOP);
-	ADD_PIECE(plist[bbishop],_BBISHOP);
-	ADD_PIECE(plist[wknight],_WKNIGHT);
-	ADD_PIECE(plist[bknight],_BKNIGHT);
-	ADD_PIECE(plist[wpawn],_WPAWN);
-	ADD_PIECE(plist[bpawn],_BPAWN);
-	piece[count] = _EMPTY;
-	square[count] = 0;
+#define ADD_PIECE(list,type) {                  \
+       current = list;                          \
+       while(current) {                         \
+          piece[count] = type;                  \
+          square[count] = SQ8864(current->sq);  \
+          current = current->next;              \
+          count++;                              \
+       }                                        \
+    };
+    ADD_PIECE(plist[wking],_WKING);
+    ADD_PIECE(plist[bking],_BKING);
+    ADD_PIECE(plist[wqueen],_WQUEEN);
+    ADD_PIECE(plist[bqueen],_BQUEEN);
+    ADD_PIECE(plist[wrook],_WROOK);
+    ADD_PIECE(plist[brook],_BROOK);
+    ADD_PIECE(plist[wbishop],_WBISHOP);
+    ADD_PIECE(plist[bbishop],_BBISHOP);
+    ADD_PIECE(plist[wknight],_WKNIGHT);
+    ADD_PIECE(plist[bknight],_BKNIGHT);
+    ADD_PIECE(plist[wpawn],_WPAWN);
+    ADD_PIECE(plist[bpawn],_BPAWN);
+    piece[count] = _EMPTY;
+    square[count] = 0;
 
-	score[0] = probe_egbb(player,piece,square);
-	if(both)
-		score[1] = probe_egbb(opponent,piece,square);
-	
+    score[0] = probe_egbb(player,piece,square);
+    if(both)
+        score[1] = probe_egbb(opponent,piece,square);
+    
     return (score[0] != _NOTFOUND);
 }
