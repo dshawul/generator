@@ -957,10 +957,10 @@ void ENUMERATOR::compress() {
     strcpy(command,SEARCHER::egbb_path);
 
     if(action == 3) {
-        sprintf(temp,"compress -c -i %s -o %s%s",
+        sprintf(temp,"compress -c %s -o %s%s",
             name,SEARCHER::egbb_path,out_name);
     } else {
-        sprintf(temp,"compress -c -i %s -o %s",
+        sprintf(temp,"compress -c %s -o %s",
             name,out_name);
     }
     strcat(command,temp);
@@ -980,7 +980,7 @@ void ENUMERATOR::decompress() {
     strcat(out_name,".cmp");
     strcpy(command,SEARCHER::egbb_path);
 
-    sprintf(temp,"compress -d -i %s -o %s%s",
+    sprintf(temp,"compress -d %s -o %s%s",
         out_name,SEARCHER::egbb_path,name);
     strcat(command,temp);
 

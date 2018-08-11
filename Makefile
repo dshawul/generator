@@ -1,10 +1,10 @@
-#CC = g++
-#CFLAGS = -O3 -Wno-unused-result
-#LDFLAGS = -fopenmp -lm -lpthread -ldl
+CC = g++
+CFLAGS = -O3 -fopenmp -Wno-unused-result
+LDFLAGS = -fopenmp -lm -lpthread -ldl
 
-CC = x86_64-w64-mingw32-g++
-CFLAGS = -O3 -Wno-unused-result -static
-LDFLAGS = -fopenmp -lm -lpthread
+#CC = x86_64-w64-mingw32-g++
+#CFLAGS = -O3 -Wno-unused-result -static
+#LDFLAGS = -fopenmp -lm -lpthread
 
 DEFINES =
 
